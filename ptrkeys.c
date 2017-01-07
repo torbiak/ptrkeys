@@ -194,9 +194,6 @@ grabmodkeys(const Arg *arg)
 		}
 		grabkey(key);
 	}
-	// TODO
-	XKeyboardControl ctrl = {.auto_repeat_mode=AutoRepeatModeDefault};
-	XChangeKeyboardControl(dpy, KBAutoRepeatMode, &ctrl);
 }
 
 void
@@ -217,9 +214,6 @@ void
 grabkeys(const Arg *arg)
 {
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
-	// TODO
-	XKeyboardControl ctrl = {.auto_repeat_mode=AutoRepeatModeDefault};
-	XChangeKeyboardControl(dpy, KBAutoRepeatMode, &ctrl);
 	for (int i = 0; i < LEN(keys); i++) {
 		grabkey(&keys[i]);
 	}
@@ -238,8 +232,6 @@ grabkey(Key *key)
 		}
 		return 1;
 	}
-	XKeyboardControl ctrl = {.key=code, .auto_repeat_mode=AutoRepeatModeOff};
-	XChangeKeyboardControl(dpy, KBAutoRepeatMode, &ctrl);
 	unsigned modifiers[] = {0, NUMLOCKMASK, CAPSLOCKMASK, NUMLOCKMASK|CAPSLOCKMASK};
 	for (int j = 0; j < LEN(modifiers); j++) {
 		XGrabKey(dpy, code, key->mod | modifiers[j], root, False, GrabModeAsync, GrabModeAsync);
