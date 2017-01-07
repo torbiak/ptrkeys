@@ -18,6 +18,7 @@
 
 #define LEN(X) (sizeof X / sizeof X[0])
 #define NOLOCKMASK(mask) (mask & ~(NUMLOCKMASK|CAPSLOCKMASK) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
+#define CLEANMASK(mask) (mask & ~(ShiftMask|NUMLOCKMASK|CAPSLOCKMASK) & (ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
 
 #define FPS 60
 #define BASE_SPEED 200
@@ -66,7 +67,7 @@ int grabkey(Key *key);
 void handle_pending_events();
 void keypress(XEvent *e);
 void keyrelease(XEvent *e);
-int sprintmods(char *buf, int buflen, int modifiers);
+void printmods(FILE *stream, int modifiers);
 
 /* bindable function declarations */
 void grabmodkeys(const Arg *arg);
@@ -119,10 +120,11 @@ static Key keys[] = {
 {ShiftMask,  XK_d,          scrollstart,  {.ui=SCROLLRIGHT},  scrollstop,      {.ui=SCROLLRIGHT}},
 };
 
-void normalizekeys()
+void normalize_shifted_keys()
 {
 	for (int i = 0; i < LEN(keys); i++) {
 		Key *key = &keys[i];
+		if (!(key->mod & ShiftMask)) continue;
 		KeyCode code = XKeysymToKeycode(dpy, key->keysym);
 		KeySym keysym = XkbKeycodeToKeysym(dpy, code, 0, key->mod & ShiftMask ? 1 : 0);
 		if (keysym != key->keysym) {
@@ -244,14 +246,20 @@ keypress(XEvent *e)
 {
 	XKeyEvent *ev = &e->xkey;
 	unsigned shiftlevel = ev->state & ShiftMask ? 1 : 0;
-	KeySym keysym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, shiftlevel);
+	KeySym keysym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
 
 	printmods(stdout, ev->state);
 	printf(" press %s\n",  XKeysymToString(keysym));
 
 	for (int i = 0; i < LEN(keys); i++) {
 		if (keysym != keys[i].keysym) continue;
-		if (NOLOCKMASK(keys[i].mod) != NOLOCKMASK(ev->state)) continue;
+		if (NOLOCKMASK(keys[i].mod) != NOLOCKMASK(ev->state)) {
+			printmods(stdout, NOLOCKMASK(keys[i].mod));
+			printf("%s != (pressed) ", XKeysymToString(keys[i].keysym));
+			printmods(stdout, NOLOCKMASK(ev->state));
+			printf(" %s\n", XKeysymToString(keysym));
+			continue;
+		}
 		if (!keys[i].pressfunc) continue;
 		keys[i].pressfunc(&(keys[i].pressarg));
 	}
@@ -261,14 +269,17 @@ void
 keyrelease(XEvent *e)
 {
 	XKeyEvent *ev = &e->xkey;
-	unsigned shiftlevel = ev->state & ShiftMask ? 1 : 0;
-	KeySym keysym = XkbKeycodeToKeysym(dpy, ev->keycode, 0, shiftlevel);
+	// If the shift level is used when looking up keysyms, then depending on
+	// the shift key state, the keysyms for press/release might not be the
+	// same, so check both keysyms.
+	KeySym unshifted = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 0);
+	KeySym shifted = XkbKeycodeToKeysym(dpy, ev->keycode, 0, 1);
 
 	printmods(stdout, ev->state);
-	printf(" release %s\n",  XKeysymToString(keysym));
+	printf(" release %s\n",  XKeysymToString(unshifted));
 
 	for (int i = 0; i < LEN(keys); i++) {
-		if (keysym != keys[i].keysym) continue;
+		if (unshifted != keys[i].keysym && shifted != keys[i].keysym) continue;
 		if (NOLOCKMASK(keys[i].mod) != NOLOCKMASK(ev->state)) continue;
 		if (!keys[i].releasefunc) continue;
 		keys[i].releasefunc(&(keys[i].releasearg));
@@ -352,6 +363,7 @@ main()
 	speed.y = 0;
 	speed.mul = 1;
 
+	normalize_shifted_keys();
 	if (grab_unmodified_keys_on_start) {
 		grabkeys(0);
 	} else {
