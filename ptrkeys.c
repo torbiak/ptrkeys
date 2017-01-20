@@ -151,6 +151,31 @@ waitforrelease(KeyCode keycode)
 	}
 }
 
+typedef struct {
+	KeyCode key;
+	int eventtype;
+} IsKeyEventArg;
+
+Bool
+iskeyevent(Display *dpy, XEvent *event, XPointer arg)
+{
+	KeyCode key = ((IsKeyEventArg*) arg)->key;
+	int eventtype = ((IsKeyEventArg*) arg)->eventtype;
+	XKeyEvent *ev = &event->xkey;
+	return ev->keycode == key && ev->type == eventtype;
+}
+
+void waitforkey(KeyCode keycode, int eventtype)
+{
+	tracef("wait for %s: %d", eventtype == KeyPress ? "press" : "release", keycode);
+	int XIfEvent(Display *display, XEvent *event_return, Bool (*predicate)(), XPointer arg);
+
+	IsKeyEventArg arg = {.key=keycode, .eventtype=eventtype};
+	XEvent ev;
+	XIfEvent(dpy, &ev, iskeyevent, (XPointer) &arg);
+	tracef("got %d", keycode);
+}
+
 void
 printmods(FILE *stream, int modifiers)
 {
