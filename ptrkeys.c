@@ -80,7 +80,7 @@ void keypress(XEvent *e);
 void keyrelease(XEvent *e);
 void printmods(FILE *stream, int modifiers);
 void grabkeys();
-void sendkey(KeyCode keycode, unsigned modifiers);
+void sendkey(KeyCode keycode, unsigned int modifiers);
 void updatemodmap();
 void updatemodkeycodes(XModifierKeymap *modmap);
 void updatenumlockmask(XModifierKeymap *modmap);
@@ -323,7 +323,7 @@ grabkey(Key *key)
 		}
 		return 1;
 	}
-	unsigned modifiers[] = {0, numlockmask, LockMask, numlockmask|LockMask};
+	unsigned int modifiers[] = {0, numlockmask, LockMask, numlockmask|LockMask};
 	for (int j = 0; j < LEN(modifiers); j++) {
 		int ok = XGrabKey(dpy, code, key->mod | modifiers[j], root, False, GrabModeAsync, GrabModeAsync);
 		if (!ok) jotf("grab key %ld", key-keys);
