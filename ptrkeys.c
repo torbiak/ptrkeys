@@ -22,6 +22,7 @@
 
 #define FPS 60
 #define BASE_SPEED 200
+#define GRAB_KEYBOARD_TIMEOUT_MS 200
 
 typedef struct {
 	int x, y;
@@ -283,11 +284,17 @@ resetspeed(const Arg *arg)
 void
 grabkeyboard(const Arg *arg)
 {
-	Time time = CurrentTime;
-	if (arg) {
-		time = arg->ul;
+	int err = XGrabKeyboard(dpy, root, 0, GrabModeAsync, GrabModeAsync, CurrentTime);
+	int waited = 0;
+	while (err != GrabSuccess && waited < GRAB_KEYBOARD_TIMEOUT_MS) {
+		int interval = 10;
+		msleep(interval);
+		waited += interval;
+		err = XGrabKeyboard(dpy, root, 0, GrabModeAsync, GrabModeAsync, CurrentTime);
 	}
-	int err = XGrabKeyboard(dpy, root, 0, GrabModeAsync, GrabModeAsync, time);
+	if (waited) {
+		tracef("grabkeyboard: waited %dms for grab", waited);
+	}
 	if (err != GrabSuccess) {
 		char *msg;
 		switch (err) {
