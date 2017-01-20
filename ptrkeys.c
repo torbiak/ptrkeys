@@ -127,7 +127,7 @@ static Key keys[] = {
 {0,         XK_n,          0,  clickpress,      {.ui=RIGHT},       clickrelease,    {.ui=RIGHT}},
 {0,         XK_m,          0,  clickpress,      {.ui=MIDDLE},      clickrelease,    {.ui=MIDDLE}},
 /* Enable/disable */
-{Mod4Mask,  XK_w,          1,  grabkeyboard,    {0},        NULL,            {0}},
+{Mod4Mask,  XK_w,          1,  grabkeyboard,    {.ul=XK_w},        NULL,            {0}},
 {0,         XK_q,          0,  ungrabkeyboard,  {0},               NULL,            {0}},
 {0,         XK_slash,      1,  grabkeyboard,    {0},               ungrabkeyboard,  {0}},
 /* Debugging */
@@ -276,17 +276,16 @@ grabkeyboard(const Arg *arg)
 		exit(1);
 	}
 	iskeyboardgrabbed = 1;
-	XAutoRepeatOff(dpy);
+	if (arg) {
+		KeyCode code = XKeysymToKeycode(dpy, arg->ul);
+		waitforkey(code, KeyRelease);
+	}
 }
 
 void
 ungrabkeyboard(const Arg *arg)
 {
-	Time time = CurrentTime;
-	if (arg) {
-		time = arg->ul;
-	}
-	XUngrabKeyboard(dpy, time);
+	XUngrabKeyboard(dpy, CurrentTime);
 	iskeyboardgrabbed = 0;
 	XKeyboardControl ctrl = {.auto_repeat_mode=AutoRepeatModeDefault};
 	XChangeKeyboardControl(dpy, KBAutoRepeatMode, &ctrl);
