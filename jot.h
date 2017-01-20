@@ -20,12 +20,12 @@ int trace_enabled = 1;
 #define jotf(MSG, ...) fprintf(stderr, MSG "\n", ##__VA_ARGS__)
 
 #define jotfatal(MSG) do { \
-	fprintf(stderr, MSG "\n"); \
+	fprintf(stderr, "[fatal] " MSG "\n"); \
 	exit(1); \
 } while (0)
 
 #define jotfatalf(MSG, ...) do { \
-	fprintf(stderr, MSG, ##__VA_ARGS__); \
+	fprintf(stderr, "[fatal] " MSG "\n", ##__VA_ARGS__); \
 	exit(1); \
 } while (0)
 
