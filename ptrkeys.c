@@ -223,7 +223,7 @@ updatenumlockmask(XModifierKeymap *modmap)
 {
 	numlockmask = 0;
 	KeyCode target = XKeysymToKeycode(dpy, XK_Num_Lock);
-	for (int i = 0; i < NUMMODS; i++) {
+	for (int i = ShiftMapIndex; i <= Mod5MapIndex; i++) {
 		for (int j = 0; j < modmap->max_keypermod; j++) {
 			KeyCode code = modmap->modifiermap[i * modmap->max_keypermod + j];
 			if (code == target) numlockmask = (1 << i);
