@@ -67,7 +67,7 @@ int numlockmask = Mod2Mask;
 
 /* function declarations */
 int grabkey(Key *key);
-void handle_pending_events();
+void handlependingevents();
 void keypress(XEvent *e);
 void keyrelease(XEvent *e);
 void printmods(FILE *stream, int modifiers);
@@ -384,7 +384,7 @@ scrollstop(const Arg *arg)
 }
 
 void
-handle_pending_events()
+handlependingevents()
 {
 	for (XEvent ev; XCheckMaskEvent(dpy, ~NoEventMask, &ev);) {
 		switch (ev.type) {
@@ -416,7 +416,7 @@ main()
 		jotfatalf("get time: %s", strerror(errno));
 	}
 	for (;;) {
-		handle_pending_events();
+		handlependingevents();
 
 		struct timespec now;
 		clock_gettime(CLOCK_MONOTONIC, &now);
