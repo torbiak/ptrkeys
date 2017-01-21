@@ -64,6 +64,7 @@ Window root;
 int screen;
 Speed speed = {.x=0, .y=0, .mul=1};
 int numlockmask = Mod2Mask;
+int iskeyboardgrabbed = 0;
 
 /* function declarations */
 int grabkey(Key *key);
@@ -78,6 +79,7 @@ void updatenumlockmask();
 void waitforrelease(KeyCode keycode);
 
 /* bindable function declarations */
+void togglegrabkeyboard(const Arg *arg);
 void grabmodkeys(const Arg *arg);
 void grabkeyboard(const Arg *arg);
 void ungrabkeyboard(const Arg *arg);
@@ -117,6 +119,7 @@ static Key keys[] = {
 {0,         XK_n,          0,  clickpress,      {.ui=RIGHT},       clickrelease,    {.ui=RIGHT}},
 {0,         XK_m,          0,  clickpress,      {.ui=MIDDLE},      clickrelease,    {.ui=MIDDLE}},
 /* Enable/disable */
+{Mod4Mask,  XK_v,          1,  togglegrabkeyboard,    {0},        NULL,            {0}},
 {Mod4Mask,  XK_w,          1,  grabkeyboard,    {.ul=XK_w},        NULL,            {0}},
 {0,         XK_q,          0,  ungrabkeyboard,  {0},               NULL,            {0}},
 {0,         XK_slash,      1,  grabkeyboard,    {0},               ungrabkeyboard,  {0}},
@@ -228,6 +231,7 @@ grabkeyboard(const Arg *arg)
 		jotf("grab keyboard: %s", msg);
 		exit(1);
 	}
+	iskeyboardgrabbed = 1;
 	if (arg && arg->ul) {
 		KeyCode code = XKeysymToKeycode(dpy, arg->ul);
 		waitforrelease(code);
@@ -240,9 +244,20 @@ ungrabkeyboard(const Arg *arg)
 	XUngrabKeyboard(dpy, CurrentTime);
 	XKeyboardControl ctrl = {.auto_repeat_mode=AutoRepeatModeDefault};
 	XChangeKeyboardControl(dpy, KBAutoRepeatMode, &ctrl);
+	iskeyboardgrabbed = 0;
 	/* Stop moving the pointer when the keyboard is ungrabbed, even if movement
 	 * keys are pressed. */
 	resetspeed(NULL);
+}
+
+void
+togglegrabkeyboard(const Arg *arg)
+{
+	if (iskeyboardgrabbed) {
+		ungrabkeyboard(NULL);
+	} else {
+		grabkeyboard(NULL);
+	}
 }
 
 
