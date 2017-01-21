@@ -261,6 +261,24 @@ togglegrabkeyboard(const Arg *arg)
 }
 
 
+int
+checkforduplicatebindings()
+{
+	for (int i = 0; i < LEN(keys); i++) {
+		Key a = keys[i];
+		for (int j = 0; j < LEN(keys); j++) {
+			if (i == j) continue;
+			Key b = keys[j];
+			if (a.mod == b.mod && a.keysym == b.keysym) {
+				// TODO: print mods as well
+				tracef("%u==%u && %lu==%lu", a.mod, b.mod, a.keysym, b.keysym);
+				jotfatalf("Multiple bindings for %s", XKeysymToString(a.keysym));
+			}
+		}
+	}
+	return 0;
+}
+
 void
 grabkeys()
 {
@@ -424,6 +442,7 @@ main()
 	XFlush(dpy);
 	updatenumlockmask();
 
+	checkforduplicatebindings();
 	grabkeys();
 
 	struct timespec then;
