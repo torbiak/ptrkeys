@@ -22,7 +22,6 @@
 
 #define FPS 60
 #define BASE_SPEED 200
-#define MAX_PRESSED_MOD_KEYCODES 10
 #define GRAB_KEYBOARD_TIMEOUT_MS 200
 
 typedef struct {
@@ -49,15 +48,6 @@ typedef struct {
 	const Arg releasearg;
 } Key;
 
-typedef struct {
-	KeyCode keys[MAX_PRESSED_MOD_KEYCODES];
-	int len;
-} KeyCodes;
-
-typedef struct {
-	char pressed[32];
-} KeyMap;
-
 enum Mouse {
 	LEFT = Button1,
 	MIDDLE = Button2,
@@ -73,11 +63,7 @@ Display *dpy = NULL;
 Window root;
 int screen;
 Speed speed = {.x=0, .y=0, .mul=1};
-int iskeyboardgrabbed = 0;
 int numlockmask = Mod2Mask;
-XModifierKeymap *modmap = NULL;
-int passthrukeys = 1;
-unsigned int keymodifiers[256] = {0};
 
 /* function declarations */
 int grabkey(Key *key);
@@ -88,10 +74,8 @@ void printmods(FILE *stream, int modifiers);
 void grabkeys();
 void sendkey(KeyCode keycode, unsigned int modifiers);
 void updatemodmap();
-void updatemodkeycodes(XModifierKeymap *modmap);
-void updatenumlockmask(XModifierKeymap *modmap);
+void updatenumlockmask();
 void waitforrelease(KeyCode keycode);
-int hasxtest();
 
 /* bindable function declarations */
 void grabmodkeys(const Arg *arg);
@@ -157,65 +141,6 @@ waitforrelease(KeyCode keycode)
 	}
 }
 
-typedef struct {
-	KeyCode key;
-	int eventtype;
-} IsKeyEventArg;
-
-Bool
-iskeyevent(Display *dpy, XEvent *event, XPointer arg)
-{
-	KeyCode key = ((IsKeyEventArg*) arg)->key;
-	int eventtype = ((IsKeyEventArg*) arg)->eventtype;
-	XKeyEvent *ev = &event->xkey;
-	return ev->keycode == key && ev->type == eventtype;
-}
-
-void waitforkey(KeyCode keycode, int eventtype)
-{
-	tracef("wait for %s: %d", eventtype == KeyPress ? "press" : "release", keycode);
-	int XIfEvent(Display *display, XEvent *event_return, Bool (*predicate)(), XPointer arg);
-
-	IsKeyEventArg arg = {.key=keycode, .eventtype=eventtype};
-	XEvent ev;
-	XIfEvent(dpy, &ev, iskeyevent, (XPointer) &arg);
-	tracef("got %d", keycode);
-}
-
-
-
-char pressedkeys[32];
-void
-releaseallkeys()
-{
-	XQueryKeymap(dpy, pressedkeys);
-	for (int i = 0; i < 256; i++) {
-		int ispressed = pressedkeys[i / 8] & (1 << (i % 8));
-		if (!ispressed) continue;
-		XTestFakeKeyEvent(dpy, i, RELEASE, 0);
-	}
-}
-
-void
-presssavedkeys()
-{
-	for (int i = 0; i < 256; i++) {
-		int ispressed = pressedkeys[i / 8] & (1 << (i % 8));
-		if (!ispressed) continue;
-		XTestFakeKeyEvent(dpy, i, PRESS, 0);
-	}
-}
-
-void
-waitforkeys(int eventtype)
-{
-	for (int i = 0; i < 256; i++) {
-		int ispressed = pressedkeys[i / 8] & (1 << (i % 8));
-		if (!ispressed) continue;
-		waitforkey(i, eventtype);
-	}
-}
-
 void
 printmods(FILE *stream, int modifiers)
 {
@@ -246,172 +171,10 @@ msleep(long ms)
 	nanosleep(&duration, NULL);
 }
 
-
-KeyCode pressedkey = 0;
-unsigned int repeattimeoutms = 660;
-unsigned int repeatintervalms = 25;
-struct timespec nextrepeat = {0};
-
 void
-addmillis(struct timespec *t, int ms)
+updatenumlockmask()
 {
-	long ns = t->tv_nsec + ms * 1e6;
-	t->tv_sec += ns / 1e9;
-	t->tv_nsec = ns % (long) 1e9;
-}
-
-int
-ispast(struct timespec *t)
-{
-	struct timespec now;
-	if (clock_gettime(CLOCK_MONOTONIC, &now)) {
-		jotfatalf("ispast: get time: %s", strerror(errno));
-	}
-	return now.tv_sec > t->tv_sec 
-			|| (now.tv_sec == t->tv_sec && now.tv_nsec > t->tv_nsec);
-}
-
-void
-repeatpressedkey()
-{
-	if (!pressedkey || !ispast(&nextrepeat)) return;
-	addmillis(&nextrepeat, repeatintervalms);
-	// pressedkey must be logically up from xserver's perspective, or the
-	// events will ineffective.
-	XTestFakeKeyEvent(dpy, pressedkey, RELEASE, 0);
-	waitforkey(pressedkey, KeyRelease);
-	XUngrabKeyboard(dpy, CurrentTime);
-	XTestFakeKeyEvent(dpy, pressedkey, PRESS, 0);
-	XTestFakeKeyEvent(dpy, pressedkey, RELEASE, 0);
-	grabkeyboard(NULL);
-	XTestFakeKeyEvent(dpy, pressedkey, PRESS, 0);
-	waitforkey(pressedkey, KeyPress);
-}
-
-void
-passthrukeypress(KeyCode keycode)
-{
-	tracef("passthrukeypress %d", keycode);
-	pressedkey = keycode;
-	clock_gettime(CLOCK_MONOTONIC, &nextrepeat);
-	addmillis(&nextrepeat, repeattimeoutms);
-	// xorg implicitly activates a grab when a key is pressed so that the
-	// window that receiving the press also gets the corresponding release.
-	// Because of this, the key being sent must be released before the keypress
-	// is simulated.
-	//XTestFakeKeyEvent(dpy, keycode, RELEASE, 0);
-	// Eat the events used to evade the implicit key grab so the event loop
-	// doesn't see them.
-	//waitforkey(keycode, KeyRelease);
-	// TODO
-	releaseallkeys();
-	waitforkeys(KeyRelease);
-	XUngrabKeyboard(dpy, CurrentTime);
-	iskeyboardgrabbed = 0;
-	// Use xtest since many applications supposedly ignore events send using
-	// XSendEvent.
-	//XTestFakeKeyEvent(dpy, keycode, PRESS, 0);
-	presssavedkeys();
-	grabkeyboard(NULL);
-	presssavedkeys();
-	//waitforkeys(KeyPress);
-	//XTestFakeKeyEvent(dpy, keycode, PRESS, 0);
-	//waitforkey(keycode, KeyPress);
-}
-
-void
-passthrukeyrelease(KeyCode keycode)
-{
-	tracef("passthrukeyrelease %d", keycode);
-	pressedkey = 0;
-	XUngrabKeyboard(dpy, CurrentTime);
-	XTestFakeKeyEvent(dpy, keycode, RELEASE, 0);
-	grabkeyboard(NULL);
-}
-
-// press     = 110
-// release   = 101
-// Before passthru:
-// set         010  press & ~release (110 & 010) pressedkeycodes
-// clear       001  release & ~press (101 & 001) releasedkeycodes
-// After passthru
-// release(pressedkeycodes)
-// press(releasedkeycodes)
-KeyCodes
-setmods(unsigned int mods, XModifierKeymap *modmap, KeyMap *keymap)
-{
-	KeyCodes pressed = {.len=0};
-	for (int mod = ShiftMapIndex; mod <= Mod5MapIndex; mod++) {
-		if (!(mods & (1 << mod))) continue;
-		// Press the first key that will set the modbit.
-		for (int i = 0; i < modmap->max_keypermod; i++) {
-			KeyCode key = modmap->modifiermap[mod * modmap->max_keypermod + i];
-			if (!key) continue;
-			int ispressed = keymap->pressed[key / 8] & (1 << (key % 8));
-			if (ispressed) {
-				tracef("setmods: %u already pressed for bit %d", key, mod);
-				continue;
-			}
-			XTestFakeKeyEvent(dpy, key, PRESS, 0);
-			pressed.keys[pressed.len++] = key;
-			if (pressed.len >= MAX_PRESSED_MOD_KEYCODES) {
-				jotfatalf("setmods: overflow: more than %d modifier keys pressed", MAX_PRESSED_MOD_KEYCODES);
-			}
-			break;
-		}
-	}
-	return pressed;
-}
-
-KeyCodes
-clearmods(unsigned int mods, XModifierKeymap *modmap, KeyMap *keymap)
-{
-	KeyCodes released = {.len=0};
-	for (int mod = ShiftMapIndex; mod <= Mod5MapIndex; mod++) {
-		if (!(mods & (1 << mod))) continue;
-		// Release all the pressed keys setting the modbit.
-		for (int i = 0; i < modmap->max_keypermod; i++) {
-			KeyCode key = modmap->modifiermap[mod * modmap->max_keypermod + i];
-			if (!key) continue;
-			int ispressed = keymap->pressed[key / 8] & (1 << (key % 8));
-			if (!ispressed) continue;
-			XTestFakeKeyEvent(dpy, key, RELEASE, 0);
-			released.keys[released.len++] = key;
-			if (released.len >= MAX_PRESSED_MOD_KEYCODES) {
-				jotfatalf("clearmods: overflow: more than %d modifier keys pressed", MAX_PRESSED_MOD_KEYCODES);
-			}
-		}
-	}
-	return released;
-}
-
-void
-releasekeys(KeyCode *keys, int len)
-{
-	for (int i = 0; i < len; i++) {
-		XTestFakeKeyEvent(dpy, keys[i], RELEASE, 0);
-	}
-}
-
-void
-presskeys(KeyCode *keys, int len)
-{
-	for (int i = 0; i < len; i++) {
-		XTestFakeKeyEvent(dpy, keys[i], PRESS, 0);
-	}
-}
-
-void
-updatemodmap()
-{
-	if (modmap) XFreeModifiermap(modmap);
 	XModifierKeymap *modmap = XGetModifierMapping(dpy);
-	updatenumlockmask(modmap);
-}
-
-void
-updatenumlockmask(XModifierKeymap *modmap)
-{
 	numlockmask = 0;
 	KeyCode target = XKeysymToKeycode(dpy, XK_Num_Lock);
 	for (int i = ShiftMapIndex; i <= Mod5MapIndex; i++) {
@@ -420,15 +183,8 @@ updatenumlockmask(XModifierKeymap *modmap)
 			if (code == target) numlockmask = (1 << i);
 		}
 	}
+	XFreeModifiermap(modmap);
 }
-
-int
-hasxtest()
-{
-	int event, error, major, minor;
-	return XTestQueryExtension(dpy, &event, &error, &major, &minor);
-}
-
 
 void
 printspeed(const Arg *arg)
@@ -472,11 +228,9 @@ grabkeyboard(const Arg *arg)
 		jotf("grab keyboard: %s", msg);
 		exit(1);
 	}
-	iskeyboardgrabbed = 1;
-	XAutoRepeatOff(dpy);
-	if (arg) {
+	if (arg && arg->ul) {
 		KeyCode code = XKeysymToKeycode(dpy, arg->ul);
-		waitforkey(code, KeyRelease);
+		waitforrelease(code);
 	}
 }
 
@@ -484,7 +238,6 @@ void
 ungrabkeyboard(const Arg *arg)
 {
 	XUngrabKeyboard(dpy, CurrentTime);
-	iskeyboardgrabbed = 0;
 	XKeyboardControl ctrl = {.auto_repeat_mode=AutoRepeatModeDefault};
 	XChangeKeyboardControl(dpy, KBAutoRepeatMode, &ctrl);
 	/* Stop moving the pointer when the keyboard is ungrabbed, even if movement
@@ -550,11 +303,7 @@ keypress(XEvent *e)
 		keys[i].pressfunc(&(keys[i].pressarg));
 		return;
 	}
-	// Key is unmapped.
-	if (IsModifierKey(keysym)) return;
-	if (passthrukeys) {
-		passthrukeypress(ev->keycode);
-	}
+	// Key is unmapped. Ignore it.
 }
 
 void
@@ -573,10 +322,7 @@ keyrelease(XEvent *e)
 		keys[i].releasefunc(&(keys[i].releasearg));
 		return;
 	}
-	if (IsModifierKey(keysym)) return;
-	if (passthrukeys) {
-		passthrukeyrelease(ev->keycode);
-	}
+	// Key is unmapped. Ignore it.
 }
 
 void
@@ -647,7 +393,7 @@ handle_pending_events()
 		case KeyRelease:
 			keyrelease(&ev); break;
 		case MappingNotify:
-			updatemodmap(); break;
+			updatenumlockmask(); break;
 		}
 	}
 }
@@ -661,13 +407,7 @@ main()
 	screen = DefaultScreen(dpy);
 	XSelectInput(dpy, root, MappingNotify|KeyPressMask|KeyReleaseMask|PropertyChangeMask);
 	XFlush(dpy);
-	updatemodmap();
-	XkbGetAutoRepeatRate(dpy, XkbUseCoreKbd, &repeattimeoutms, &repeatintervalms);
-
-	if (!hasxtest()) {
-		jot("XTEST not available. Can't passthru keys when the keyboard is grabbed.");
-		passthrukeys = 0;
-	}
+	updatenumlockmask();
 
 	grabkeys();
 
@@ -677,8 +417,6 @@ main()
 	}
 	for (;;) {
 		handle_pending_events();
-
-		repeatpressedkey();
 
 		struct timespec now;
 		clock_gettime(CLOCK_MONOTONIC, &now);
@@ -696,6 +434,5 @@ main()
 		XFlush(dpy);
 		msleep(1000/FPS);
 	}
-	XFreeModifiermap(modmap);
 	exit(0);
 }
