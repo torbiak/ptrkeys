@@ -111,18 +111,17 @@ static Key keys[] = {
 {0,         XK_k,          0,  mulspeed,        {.i=4},            divspeed,        {.i=4}},
 {0,         XK_l,          0,  mulspeed,        {.i=8},            divspeed,        {.i=8}},
 {0,         XK_semicolon,  0,  mulspeed,        {.i=16},           divspeed,        {.i=16}},
-{0,         XK_space,      0,  clickpress,      {.ui=LEFT},        clickrelease,    {.ui=LEFT}},
 /* Left-handed clicking. */
 {0,         XK_e,          0,  clickpress,      {.ui=RIGHT},       clickrelease,    {.ui=RIGHT}},
 {0,         XK_r,          0,  clickpress,      {.ui=MIDDLE},      clickrelease,    {.ui=MIDDLE}},
 /* Right-handed clicking, for dragging, etc. */
+{0,         XK_space,      0,  clickpress,      {.ui=LEFT},        clickrelease,    {.ui=LEFT}},
 {0,         XK_n,          0,  clickpress,      {.ui=RIGHT},       clickrelease,    {.ui=RIGHT}},
 {0,         XK_m,          0,  clickpress,      {.ui=MIDDLE},      clickrelease,    {.ui=MIDDLE}},
 /* Enable/disable */
 {Mod4Mask,  XK_v,          1,  togglegrabkeyboard,    {0},        NULL,            {0}},
 {Mod4Mask,  XK_w,          1,  grabkeyboard,    {.ul=XK_w},        NULL,            {0}},
 {0,         XK_q,          0,  ungrabkeyboard,  {0},               NULL,            {0}},
-{0,         XK_slash,      1,  grabkeyboard,    {0},               ungrabkeyboard,  {0}},
 /* Debugging */
 {Mod4Mask,  XK_z,          1,  printspeed,      {0},               NULL,            {0}},
 {Mod4Mask,  XK_g,          1,  resetspeed,      {0},               NULL,            {0}},
