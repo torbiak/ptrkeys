@@ -119,6 +119,7 @@ static Key keys[] = {
 {0,         XK_n,          0,  clickpress,      {.ui=RIGHT},       clickrelease,    {.ui=RIGHT}},
 {0,         XK_m,          0,  clickpress,      {.ui=MIDDLE},      clickrelease,    {.ui=MIDDLE}},
 /* Enable/disable */
+{0,         XK_Select,     1,  grabkeyboard,    {0},               ungrabkeyboard,  {0}},
 {Mod4Mask,  XK_v,          1,  togglegrabkeyboard,    {0},        NULL,            {0}},
 {Mod4Mask,  XK_w,          1,  grabkeyboard,    {.ul=XK_w},        NULL,            {0}},
 {0,         XK_q,          0,  ungrabkeyboard,  {0},               NULL,            {0}},
@@ -207,8 +208,12 @@ resetspeed(const Arg *arg)
 void
 grabkeyboard(const Arg *arg)
 {
+	// TODO: turn repeat on at exit and catch SIGINT
+	XAutoRepeatOff(dpy);
 	int err = XGrabKeyboard(dpy, root, 0, GrabModeAsync, GrabModeAsync, CurrentTime);
 	int waited = 0;
+	// TODO: We're probably doing something wrong if we're having to wait to grab the
+	// keyboard. I don't think this is needed if we aren't doing passthru.
 	while (err != GrabSuccess && waited < GRAB_KEYBOARD_TIMEOUT_MS) {
 		int interval = 10;
 		msleep(interval);
@@ -442,6 +447,9 @@ main()
 	updatenumlockmask();
 
 	checkforduplicatebindings();
+	// TODO: only turn off autorepeat for keys bound to grab the keyboard while
+	// pressed.
+	XAutoRepeatOff(dpy);
 	grabkeys();
 
 	struct timespec then;
