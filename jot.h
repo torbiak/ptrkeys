@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int jottrace = 1;
+extern int jottrace;
 
 #define trace(MSG) do { \
 	if (!jottrace) break; \
