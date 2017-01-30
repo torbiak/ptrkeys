@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <errno.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -37,7 +36,6 @@ static int grabkey(Key *key);
 static void setkeyrepeat(int mode);
 static void updatenumlockmask();
 static void cleanup();
-static void onsigint();
 static int saveerror(Display *dpy, XErrorEvent *ee);
 static void msleep(long ms);
 static void sprintkeysym(char *dst, size_t len, KeySym keysym, int mods);
@@ -59,7 +57,6 @@ int ismove2scroll = 0;
 static int numlockmask = Mod2Mask;
 static XErrorEvent savederror = {0};
 
-
 // setup connects to the xserver, configures the keyboard, and registers exit
 // and signal functions.
 void
@@ -67,15 +64,13 @@ setup()
 {
 	dpy = XOpenDisplay(NULL);
 	if (!dpy) die("connect to xserver: failed");
-	assert(dpy);
 	root = DefaultRootWindow(dpy);
 
 	XSelectInput(dpy, root, MappingNotify|KeyPressMask|KeyReleaseMask);
 	updatenumlockmask();
 	grabkeys();
 	setkeyrepeat(AutoRepeatModeOff);
-	atexit(cleanup);
-	signal(SIGINT, onsigint);
+	if (atexit(cleanup)) dief("atexit: %s", strerror(errno));
 }
 
 // runeventloop handles events from the xserver and scrolls and moves the
@@ -404,17 +399,6 @@ cleanup()
 	if (iskeyboardgrabbed) ungrabkeyboard(NULL);
 	setkeyrepeat(AutoRepeatModeOn);
 	XFlush(dpy);
-	if (quitting) XCloseDisplay(dpy);
-}
-
-static void
-onsigint()
-{
-	// exit isn't async-signal-safe but the alternatives seem worse. Changing
-	// the event loop so a flag could be checked would involve polling for
-	// incoming keyboard events at a high enough frequency that there's no
-	// noticeable latency (~50Hz).
-	exit(0);
 }
 
 static int
