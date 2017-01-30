@@ -7,12 +7,16 @@
 #include "pk.h"
 #include "jot.h"
 
-static void onsigint();
+#define USAGE "usage: ptrkeys [-d|--debug] [-h|--help]\n"
 
-int jottrace = 1;
+static void onsigint();
+static void setsighandler();
+
+int jottrace = 0;
 
 static sigjmp_buf jmpbuf;
 static volatile sig_atomic_t canjump;
+
 
 static void
 onsigint()
@@ -22,7 +26,7 @@ onsigint()
 	siglongjmp(jmpbuf, 1);
 }
 
-void
+static void
 setsighandler()
 {
 	struct sigaction sa;
@@ -33,10 +37,26 @@ setsighandler()
 	}
 }
 
-int
-main()
+static void
+parseargs(int argc, char *argv[])
 {
-	// TODO: add option to control verbosity
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
+			jottrace = 1;
+		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
+			fprintf(stdout, USAGE);
+			exit(0);
+		} else {
+			fprintf(stderr, USAGE);
+			exit(1);
+		}
+	}
+}
+
+int
+main(int argc, char *argv[])
+{
+	parseargs(argc, argv);
 	dieifduplicatebindings();
 	setup();
 	setsighandler();
