@@ -11,7 +11,7 @@
 // events whenever directional keys are pressed unless the ShiftMask bit is
 // included here. While it's possible to remove a keysym from the xserver's
 // modifier map so it can be used only as an internal ptrkeys modifier, it's
-// easier and more reliable to use xmodmap to remap the keycode to another,
+// easier and more reliable to simply remap the keycode to another,
 // non-modifier keysym, as the xserver sometimes treats keys that aren't in the
 // modifier map at all as modifiers. Modifiers cannot be suppressed for global
 // hotkeys. Note ptrkeys doesn't see any internalmods either.
