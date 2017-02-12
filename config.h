@@ -28,9 +28,11 @@ static Key keys[] = {
 {0,          XK_d,          0,              movestart,           {.i=RIGHT},       movestop,        {.i=RIGHT}},
 // Scrolling
 {0,          XK_Shift_L,    0,              move2scroll,         {.i=1},           move2scroll,     {.i=0}},
+{0,          XK_f,          0,              togglem2s,           {0},              NULL,            {0}},
 // Accelerate using the right hand.
 {0,          XK_j,          0,              multiplyspeed,       {.i=2},           dividespeed,     {.i=2}},
 {0,          XK_k,          0,              multiplyspeed,       {.i=4},           dividespeed,     {.i=4}},
+{0,          XK_Alt_L,      0,              multiplyspeed,       {.i=6},           dividespeed,     {.i=6}},
 {0,          XK_l,          0,              multiplyspeed,       {.i=8},           dividespeed,     {.i=8}},
 {0,          XK_semicolon,  0,              multiplyspeed,       {.i=64},          dividespeed,     {.i=64}},
 // Left-handed clicking.
@@ -50,4 +52,3 @@ static Key keys[] = {
 // Debugging
 {Mod4Mask,   XK_g,          GRAB,           resetmovement,       {0},              NULL,            {0}},
 };
-

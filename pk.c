@@ -572,6 +572,16 @@ move2scroll(const Arg *enable)
 	mvptr.ycont = 0;
 }
 
+// togglem2s toggles move2scroll behaviour.
+void
+togglem2s(const Arg *ignored)
+{
+	printmovement();
+	Arg arg = {.i=!ismove2scroll};
+	move2scroll(&arg);
+	printmovement();
+}
+
 void
 scrollstart(const Arg *dir)
 {
@@ -624,6 +634,7 @@ resetmovement(const Arg *ignored)
 	mvptr.basespeed = BASE_SPEED;
 	mvscroll = zero;
 	mvscroll.basespeed = BASE_SCROLL;
+	ismove2scroll = 0;
 }
 
 void

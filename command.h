@@ -38,6 +38,7 @@ void grabandmove2scroll(const Arg *ignored);
 void movestart(const Arg *dir);
 void movestop(const Arg *dir);
 void move2scroll(const Arg *enable); // enable is treated as a boolean.
+void togglem2s(const Arg *ignored);
 void scrollstart(const Arg *dir);
 void scrollstop(const Arg *dir);
 // n is an unsigned int.
