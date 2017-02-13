@@ -5,20 +5,31 @@
 // Events per second.
 #define BASE_SCROLL 10
 
+// Set modifier bits as "internal" while the keyboard is grabbed, that is, the
+// xserver still keeps track of their state but doesn't pass them along in key
+// events to applications.
+//
 // By default, set modifier bits will be included in click and scroll events
 // generated while the keyboard is grabbed. For example, holding down a shift
 // key to make the directional keys scroll instead will send "Shift-scroll"
 // events whenever directional keys are pressed unless the ShiftMask bit is
-// included here. While it's possible to remove a keysym from the xserver's
-// modifier map so it can be used only as an internal ptrkeys modifier, it's
-// easier and more reliable to simply remap the keycode to another,
-// non-modifier keysym, as the xserver sometimes treats keys that aren't in the
-// modifier map at all as modifiers. Modifiers cannot be suppressed for global
-// hotkeys. Note ptrkeys doesn't see any internalmods either.
+// included here. Note that some modifier keysyms are treated as modifiers even
+// if they aren't assigned to any modifier bits.
+//
+// Modifiers cannot be suppressed for global hotkeys. Note ptrkeys doesn't see
+// any internalmods either.
 unsigned int internalmods = ShiftMask;
 
-// Don't use shifted keysyms like XK_A or XK_percent. Use the unshifted value,
-// like XK_a or XK_5 instead.
+// Use unshifted keysyms regardless whether shift will be pressed. Eg, use XK_a
+// or XK_5 instead of XK_A or XK_percent.
+//
+// Keys with modifiers can't have release functions, since the order of key
+// release is significant.
+//
+// While the keyboard is grabbed ptrkeys doesn't take modifier bits into
+// account when determining a key's binding, similar to how keybindings work
+// for video games. Bindings with modifiers aren't active while the keyboard is
+// grabbed. Bindings with modifiers must have the GRAB option set.
 static Key keys[] = {
 // modifier  key            opts            press func           press arg         release func     release arg
 // Directional control with WASD.
@@ -36,13 +47,20 @@ static Key keys[] = {
 {0,          XK_l,          0,              multiplyspeed,       {.f=4},           dividespeed,     {.f=4}},
 {0,          XK_semicolon,  0,              multiplyspeed,       {.f=8},           dividespeed,     {.f=8}},
 // Left-handed clicking.
+{0,          XK_space,      0,              clickpress,          {.ui=BTNLEFT},    clickrelease,    {.ui=BTNLEFT}},
 {0,          XK_e,          0,              clickpress,          {.ui=BTNRIGHT},   clickrelease,    {.ui=BTNRIGHT}},
 {0,          XK_r,          0,              clickpress,          {.ui=BTNMIDDLE},  clickrelease,    {.ui=BTNMIDDLE}},
 // Right-handed clicking, for dragging, etc.
-{0,          XK_space,      0,              clickpress,          {.ui=BTNLEFT},    clickrelease,    {.ui=BTNLEFT}},
 {0,          XK_n,          0,              clickpress,          {.ui=BTNRIGHT},   clickrelease,    {.ui=BTNRIGHT}},
 {0,          XK_m,          0,              clickpress,          {.ui=BTNMIDDLE},  clickrelease,    {.ui=BTNMIDDLE}},
 // Enable/disable
+//
+// The caps lock key has been bound to Select in xmodmap to avoid changing the
+// Lock modifier state. eg: `keycode 66 = Select`
+//
+// If the keyboard will be grabbed while a key is held down, auto-repeat must
+// be disabled for the key using the NOREPEAT option. This could be
+// inconvenient if the key is frequently used outside of ptrkeys.
 {0,          XK_Select,     GRAB|NOREPEAT,  grabkeyboard,        {0},              ungrabkeyboard,  {0}},
 {ShiftMask,  XK_Select,     GRAB|NOREPEAT,  grabandmove2scroll,  {0},              NULL,            {0}},
 {Mod4Mask,   XK_v,          GRAB,           togglegrabkeyboard,  {0},              NULL,            {0}},
