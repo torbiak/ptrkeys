@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -198,42 +199,36 @@ static void
 requestpointermovement(Movement *m, int usec)
 {
 	if (!m->dir) return;
-	// -1, 0, 1
-	int xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
-	int ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
-	// x, y units per second
-	int xps = m->basespeed * xsign * m->mul * usec + m->xrem;
-	int yps = m->basespeed * ysign * m->mul * usec + m->yrem;
-	int dx =  xps / 1000000;
-	int dy = - yps / 1000000;
-	// Subunit remainders.
-	m->xrem = xps % 1000000;
-	m->yrem = yps % 1000000;
+	// xsign and ysign can be one of -1, 0, 1.
+	double xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
+	double ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
+	double dx = m->basespeed * xsign * m->mul * usec / 1e6 + m->xrem;
+	double dy = - m->basespeed * ysign * m->mul * usec / 1e6 + m->yrem;
+	double dummy;
+	m->xrem = modf(dx, &dummy);
+	m->yrem = modf(dy, &dummy);
 
-	XWarpPointer(dpy, None, None, 0, 0, 0, 0, dx, dy);
+	XWarpPointer(dpy, None, None, 0, 0, 0, 0, (int) dx, (int) dy);
 }
 
 static void
 requestscrolling(Movement *m, int usec)
 {
 	if (!m->dir) return;
-	// -1, 0, 1
-	int xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
-	int ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
-	// x, y units per second
-	int xps = m->basespeed * xsign * m->mul * usec + m->xrem;
-	int yps = m->basespeed * ysign * m->mul * usec + m->yrem;
-	int dx =  xps / 1000000;
-	int dy = - yps / 1000000;
-	// Subunit remainders.
-	m->xrem = xps % 1000000;
-	m->yrem = yps % 1000000;
+	// xsign and ysign can be one of -1, 0, 1.
+	double xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
+	double ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
+	double dx = m->basespeed * xsign * m->mul * usec / 1e6 + m->xrem;
+	double dy = m->basespeed * ysign * m->mul * usec / 1e6 + m->yrem;
+	double dummy;
+	m->xrem = modf(dx, &dummy);
+	m->yrem = modf(dy, &dummy);
 
 	unsigned int xbutton = (m->dir & LEFT) ? SCROLLLEFT : SCROLLRIGHT;
-	unsigned int ybutton = (m->dir & UP) ? 4 : 5;
+	unsigned int ybutton = (m->dir & UP) ? SCROLLUP : SCROLLDOWN;
 
-	int xevents = abs(dx);
-	int yevents = abs(dy);
+	int xevents = abs((int) dx);
+	int yevents = abs((int) dy);
 	// Scroll immediately after a scroll key is pressed, but adjust the
 	// remainder so the configured number of scroll events occur in the first
 	// second.
@@ -576,10 +571,8 @@ move2scroll(const Arg *enable)
 void
 togglem2s(const Arg *ignored)
 {
-	printmovement();
 	Arg arg = {.i=!ismove2scroll};
 	move2scroll(&arg);
-	printmovement();
 }
 
 void
@@ -597,19 +590,19 @@ scrollstop(const Arg *dir)
 }
 
 void
-multiplyspeed(const Arg *n)
+multiplyspeed(const Arg *factor)
 {
-	if (!n) die("multiplyspeed: NULL arg");
-	mvptr.mul += n->ui;
-	mvscroll.mul += n->ui;
+	if (!factor) die("multiplyspeed: NULL arg");
+	mvptr.mul *= factor->f;
+	mvscroll.mul *= factor->f;
 }
 
 void
-dividespeed(const Arg *n)
+dividespeed(const Arg *factor)
 {
-	if (!n) die("dividespeed: NULL arg");
-	mvptr.mul -= n->ui;
-	mvscroll.mul -= n->ui;
+	if (!factor) die("dividespeed: NULL arg");
+	mvptr.mul /= factor->f;
+	mvscroll.mul /= factor->f;
 }
 
 void

@@ -1,7 +1,7 @@
 // "Frames" or updates per second.
 #define FPS 60
 // Pixels per second.
-#define BASE_SPEED 150
+#define BASE_SPEED 1000.0
 // Events per second.
 #define BASE_SCROLL 10
 
@@ -29,12 +29,12 @@ static Key keys[] = {
 // Scrolling
 {0,          XK_Shift_L,    0,              move2scroll,         {.i=1},           move2scroll,     {.i=0}},
 {0,          XK_f,          0,              togglem2s,           {0},              NULL,            {0}},
-// Accelerate using the right hand.
-{0,          XK_j,          0,              multiplyspeed,       {.i=2},           dividespeed,     {.i=2}},
-{0,          XK_k,          0,              multiplyspeed,       {.i=4},           dividespeed,     {.i=4}},
-{0,          XK_Alt_L,      0,              multiplyspeed,       {.i=6},           dividespeed,     {.i=6}},
-{0,          XK_l,          0,              multiplyspeed,       {.i=8},           dividespeed,     {.i=8}},
-{0,          XK_semicolon,  0,              multiplyspeed,       {.i=64},          dividespeed,     {.i=64}},
+// Speed multiply/divide.
+{0,          XK_Alt_L,      0,              dividespeed,         {.f=8},           multiplyspeed,   {.f=8}},
+{0,          XK_j,          0,              dividespeed,         {.f=8},           multiplyspeed,   {.f=8}},
+{0,          XK_k,          0,              dividespeed,         {.f=2},           multiplyspeed,   {.f=2}},
+{0,          XK_l,          0,              multiplyspeed,       {.f=4},           dividespeed,     {.f=4}},
+{0,          XK_semicolon,  0,              multiplyspeed,       {.f=8},           dividespeed,     {.f=8}},
 // Left-handed clicking.
 {0,          XK_e,          0,              clickpress,          {.ui=BTNRIGHT},   clickrelease,    {.ui=BTNRIGHT}},
 {0,          XK_r,          0,              clickpress,          {.ui=BTNMIDDLE},  clickrelease,    {.ui=BTNMIDDLE}},

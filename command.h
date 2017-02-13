@@ -41,9 +41,9 @@ void move2scroll(const Arg *enable); // enable is treated as a boolean.
 void togglem2s(const Arg *ignored);
 void scrollstart(const Arg *dir);
 void scrollstop(const Arg *dir);
-// n is an unsigned int.
-void multiplyspeed(const Arg *uint);
-void dividespeed(const Arg *uint);
+// factor is a float.
+void multiplyspeed(const Arg *factor);
+void dividespeed(const Arg *factor);
 
 // Clicking:
 // btn can be any value from enum Mouse.

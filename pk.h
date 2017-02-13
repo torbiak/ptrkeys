@@ -4,10 +4,10 @@
 #include <X11/Xlib.h>
 
 typedef struct {
-	unsigned int basespeed;
+	double basespeed;
 	unsigned int dir;  // Bits from enum Direction.
-	unsigned int mul;
-	int xrem, yrem; // Subunit remainders.
+	double mul;
+	double xrem, yrem; // Subunit remainders.
 	int xcont, ycont; // Continuing a movement?
 } Movement;
 
@@ -15,7 +15,7 @@ typedef union {
 	int i;
 	unsigned int ui;
 	unsigned long ul;
-	float f;
+	double f;
 	const void *v;
 } Arg;
 
