@@ -150,9 +150,9 @@ changedirection(Movement *m, unsigned int dir)
 void
 dieifduplicatebindings()
 {
-	for (int i = 0; i < LEN(keys); i++) {
+	for (size_t i = 0; i < LEN(keys); i++) {
 		Key a = keys[i];
-		for (int j = 0; j < LEN(keys); j++) {
+		for (size_t j = 0; j < LEN(keys); j++) {
 			if (i == j) continue;
 			Key b = keys[j];
 			if (a.mod == b.mod && a.keysym == b.keysym) {
@@ -208,7 +208,7 @@ requestpointermovement(Movement *m, int usec)
 	m->xrem = modf(dx, &dummy);
 	m->yrem = modf(dy, &dummy);
 
-	XWarpPointer(dpy, None, None, 0, 0, 0, 0, (int) dx, (int) dy);
+	XWarpPointer(dpy, None, None, 0, 0, 0, 0, (int)dx, (int)dy);
 }
 
 static void
@@ -227,8 +227,8 @@ requestscrolling(Movement *m, int usec)
 	unsigned int xbutton = (m->dir & LEFT) ? SCROLLLEFT : SCROLLRIGHT;
 	unsigned int ybutton = (m->dir & UP) ? SCROLLUP : SCROLLDOWN;
 
-	int xevents = abs((int) dx);
-	int yevents = abs((int) dy);
+	int xevents = abs((int)dx);
+	int yevents = abs((int)dy);
 	// Scroll immediately after a scroll key is pressed, but adjust the
 	// remainder so the configured number of scroll events occur in the first
 	// second.
@@ -265,7 +265,7 @@ keypress(XEvent *e)
 		tracef("press %s", keystr);
 	}
 
-	for (int i = 0; i < LEN(keys); i++) {
+	for (size_t i = 0; i < LEN(keys); i++) {
 		if (keysym != keys[i].keysym) continue;
 		if (iskeyboardgrabbed && keys[i].mod) continue;
 		if (!iskeyboardgrabbed && NOLOCKMASK(keys[i].mod) != NOLOCKMASK(ev->state)) {
@@ -290,7 +290,7 @@ keyrelease(XEvent *e)
 		tracef("release %s", keystr);
 	}
 
-	for (int i = 0; i < LEN(keys); i++) {
+	for (size_t i = 0; i < LEN(keys); i++) {
 		if (keysym != keys[i].keysym) continue;
 		if (iskeyboardgrabbed && keys[i].mod) continue;
 		// TODO: ok to ignore mods on release, if release funcs are disallowed
@@ -308,7 +308,7 @@ grabkeys()
 {
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	int nerr = 0;
-	for (int i = 0; i < LEN(keys); i++) {
+	for (size_t i = 0; i < LEN(keys); i++) {
 		if (!(keys[i].opts & GRAB)) continue;
 		if (keys[i].mod && keys[i].releasefunc) {
 			jot("key binding with modifier has release function");
@@ -333,7 +333,7 @@ grabkey(Key *key)
 	defaulthandler = XSetErrorHandler(saveerror);
 
 	unsigned int modifiers[] = {0, numlockmask, LockMask, numlockmask|LockMask};
-	for (int j = 0; j < LEN(modifiers); j++) {
+	for (size_t j = 0; j < LEN(modifiers); j++) {
 		savederror.error_code = Success;
 
 		XGrabKey(dpy, code, key->mod | modifiers[j], root, False, GrabModeAsync, GrabModeAsync);
@@ -362,7 +362,7 @@ grabkey(Key *key)
 static void
 setkeyrepeat(int mode)
 {
-	for (int i = 0; i < LEN(keys); i++) {
+	for (size_t i = 0; i < LEN(keys); i++) {
 		if (!(keys[i].opts & NOREPEAT)) continue;
 		KeyCode code = XKeysymToKeycode(dpy, keys[i].keysym);
 		XKeyboardControl ctrl = {
@@ -399,6 +399,7 @@ cleanup()
 static int
 saveerror(Display *dpy, XErrorEvent *ee)
 {
+	(void)dpy;
 	savederror = *ee;
 	return 0;
 }
@@ -441,7 +442,8 @@ sprintkeysym(char *dst, size_t dstlen, KeySym keysym, int mods)
 	char *keystr = XKeysymToString(keysym);
 	if (!keystr) {
 		int n = snprintf(dst, dstlen, "%s%lx", dst, keysym);
-		if (n >= dstlen) goto toolong;
+		assert(n >= 0);
+		if ((unsigned)n >= dstlen) goto toolong;
 	}
 	if (strappend(dst, dstlen, keystr)) goto toolong;
 	return;
@@ -458,7 +460,7 @@ strappend(char *dst, size_t dstlen, char *src)
 	assert(src);
 	assert(dst);
 	int n = snprintf(dst, dstlen, "%s%s", dst, src);
-	if (n >= dstlen) {
+	if (n < 0 || (unsigned)n >= dstlen) {
 		return 1;
 	}
 	return 0;
@@ -505,6 +507,7 @@ grabkeyboard(const Arg *keysym)
 void
 ungrabkeyboard(const Arg *ignored)
 {
+	(void)ignored;
 	XkbSetServerInternalMods(dpy, XkbUseCoreKbd, internalmods, 0, 0, 0);
 	XUngrabKeyboard(dpy, CurrentTime);
 	XKeyboardControl ctrl = {.auto_repeat_mode=AutoRepeatModeDefault};
@@ -518,6 +521,7 @@ ungrabkeyboard(const Arg *ignored)
 void
 togglegrabkeyboard(const Arg *ignored)
 {
+	(void)ignored;
 	if (iskeyboardgrabbed) {
 		ungrabkeyboard(NULL);
 	} else {
@@ -528,6 +532,7 @@ togglegrabkeyboard(const Arg *ignored)
 void
 grabandmove2scroll(const Arg *ignored)
 {
+	(void)ignored;
 	grabkeyboard(NULL);
 	Arg arg = {.i=1};
 	move2scroll(&arg);
@@ -571,6 +576,7 @@ move2scroll(const Arg *enable)
 void
 togglem2s(const Arg *ignored)
 {
+	(void)ignored;
 	Arg arg = {.i=!ismove2scroll};
 	move2scroll(&arg);
 }
@@ -622,6 +628,7 @@ clickrelease(const Arg *btn)
 void
 resetmovement(const Arg *ignored)
 {
+	(void)ignored;
 	Movement zero = {.mul=1};
 	mvptr = zero;
 	mvptr.basespeed = BASE_SPEED;
@@ -633,5 +640,6 @@ resetmovement(const Arg *ignored)
 void
 quit(const Arg *ignored)
 {
+	(void)ignored;
 	quitting = 1;
 }
