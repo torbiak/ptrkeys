@@ -29,8 +29,7 @@ onsigint()
 static void
 setsighandler()
 {
-	struct sigaction sa;
-	sa.sa_handler = onsigint;
+	struct sigaction sa = {.sa_handler = onsigint};
 	sigemptyset(&sa.sa_mask);
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
 		dief("set sigint handler: %s", strerror(errno));
