@@ -6,6 +6,18 @@ ptrkeys binds the keyboard to mouse movement, scrolling, and mouse button presse
 
 To build pointer keys the Xlib header files, GNU make, and a C99 compiler are needed.
 
+## Installation
+
+Edit config.mk to suit your system and set the install location.
+
+Then build and install using GNU make:
+
+    make clean install
+
+## Configuration
+
+See `config.def.h` for an annotated configuration example.
+
 ## X keyboard model
 
 To understand ptrkeys configuration it's necessary to understand a few things about the X keyboard model.
@@ -46,18 +58,6 @@ X generally directs keyboard events to the focused window, but a keyboard can be
 
 ptrkeys doesn't create a window that can be focused, so a single-key grab is necessary to setup a "global hotkey" that can be used to enable ptrkeys by grabbing the entire keyboard and thus "activating" the rest of its configured key bindings. The `GRAB` option is used in the `keys[]` definition to make a global hotkey.
 
-## Configuration
-
-TODO
-
-## Installation
-
-Edit config.mk to suit your system and set the install location.
-
-Then build and install using GNU make:
-
-    make clean install
-
 ## Running
 
 To try ptrkeys out, it can simply be run from the command line.
@@ -67,3 +67,21 @@ To run ptrkeys in the background for the remainder of an X session, invoke it fr
     nohup ptrkeys &> ~/.ptrkeys.log & disown $!
 
 For a more permanent arrangement, if X is being invoked using `startx`/`xinit`, run `ptrkeys` in the background from [`~/.xinitrc`](https://wiki.archlinux.org/index.php/Xinit). If a display manager is being used it's likely necessary to create a custom session; see [these instructions for Ubuntu](https://wiki.ubuntu.com/CustomXSession), for example.
+
+## Acknowledgements
+
+ptrkeys is heavily influenced by [suckless.org's](http://suckless.org) [dwm](http://dwm.suckless.org/), although I have intentionally diverged from the suckless style guide:
+
+* I mix declaration and code, because I'm not aware of any downside, it's convenient, and reducing variables' scope is good.
+* I use header guards because I don't want to update every test program's dependencies when the library's dependencies change.
+* I use `//` comments because they're easier to format and manipulate.
+* I put single-statement if blocks on the same line as the guard because otherwise I'm continually bit by misleading indentation. `-Wmisleading-indentation` didn't catch the examples I tried.
+
+I found the following documents most useful in learning how to use Xlib:
+
+* [Xlib - C Language X Interface](https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html#XKeysymToKeycode)
+*  Xlib Programming Manual
+
+## License
+
+MIT
