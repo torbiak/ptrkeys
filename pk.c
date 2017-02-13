@@ -459,6 +459,7 @@ sprintkeysym(char *dst, size_t dstlen, KeySym keysym, int mods)
 		isfirst = 0;
 		switch (1<<i) {
 		case ShiftMask: err = strappend(dst, dstlen, "Shift"); break;
+		case LockMask: err = strappend(dst, dstlen, "Lock"); break;
 		case ControlMask: err = strappend(dst, dstlen, "Control"); break;
 		case Mod1Mask: err = strappend(dst, dstlen, "Mod1"); break;
 		case Mod2Mask: err = strappend(dst, dstlen, "Mod2"); break;
@@ -484,18 +485,27 @@ toolong:
 	return;
 }
 
-// strappend appends src to dst and tries to be safe about it. Returns 0 on
-// success, and nonzero otherwise.
-static int
+// strappend appends src to dst. Returns 0 on success, and nonzero otherwise.
+int
 strappend(char *dst, size_t dstlen, char *src)
 {
-	assert(src);
-	assert(dst);
-	int n = snprintf(dst, dstlen, "%s%s", dst, src);
-	if (n < 0 || (unsigned)n >= dstlen) {
-		return 1;
+	if (!src || !dst) return 2;
+	int err = 0;
+	char *start = dst;
+	for (size_t i = 0; *dst; i++) {
+		if (i >= dstlen) goto toolong;
+		dst++;
 	}
-	return 0;
+	for (size_t i = dst - start; *src; i++) {
+		if (i >= dstlen-1) goto toolong;
+		*dst++ = *src++;
+	}
+	goto cleanup;
+toolong:
+	err = 1;
+cleanup:
+	dst = '\0';
+	return err;
 }
 
 void
