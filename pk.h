@@ -32,7 +32,7 @@ typedef struct {
 void setup();
 void runeventloop();
 void changedirection(Movement *m, unsigned int dir);
-void dieifduplicatebindings();
+void dieifbadbindings();
 void waitforrelease(KeyCode keycode);
 
 // xserver connection

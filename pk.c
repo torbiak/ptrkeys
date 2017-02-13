@@ -27,6 +27,9 @@
 #define GRAB_KEYBOARD_TIMEOUT_MS 200
 
 
+static void dieifduplicatebindings();
+static void dieifmodifiedkeywithreleasefunc();
+static void dieifmodifiedungrabbedkeys();
 static void handlependingevents();
 static void requestpointermovement(Movement *m, int usec);
 static void requestscrolling(Movement *m, int usec);
@@ -147,6 +150,15 @@ changedirection(Movement *m, unsigned int dir)
 	}
 }
 
+
+void
+dieifbadbindings()
+{
+	dieifduplicatebindings();
+	dieifmodifiedkeywithreleasefunc();
+	dieifmodifiedungrabbedkeys();
+}
+
 void
 dieifduplicatebindings()
 {
@@ -158,11 +170,38 @@ dieifduplicatebindings()
 			if (a.mod == b.mod && a.keysym == b.keysym) {
 				char keystr[MAX_KEYSYM_DESC_LEN] = {0};
 				sprintkeysym(keystr, LEN(keystr), a.keysym, a.mod);
-				dief("Multiple bindings for %s", keystr);
+				dief("multiple bindings for %s", keystr);
 			}
 		}
 	}
 }
+
+void
+dieifmodifiedkeywithreleasefunc()
+{
+	for (size_t i = 0; i < LEN(keys); i++) {
+		Key key = keys[i];
+		if (key.mod && key.releasefunc) {
+			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
+			sprintkeysym(keystr, LEN(keystr), key.keysym, key.mod);
+			dief("key with modifier and release function: %s", keystr);
+		}
+	}
+}
+
+void
+dieifmodifiedungrabbedkeys()
+{
+	for (size_t i = 0; i < LEN(keys); i++) {
+		Key key = keys[i];
+		if (key.mod && !(keys[i].opts & GRAB)) {
+			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
+			sprintkeysym(keystr, LEN(keystr), key.keysym, key.mod);
+			dief("binding with modifiers but no GRAB: %s", keystr);
+		}
+	}
+}
+
 
 // waitforrelease waits for a KeyRelease event for the given keycode,
 // discarding other KeyPress and KeyRelease events until then.
@@ -292,10 +331,7 @@ keyrelease(XEvent *e)
 
 	for (size_t i = 0; i < LEN(keys); i++) {
 		if (keysym != keys[i].keysym) continue;
-		if (iskeyboardgrabbed && keys[i].mod) continue;
-		// TODO: ok to ignore mods on release, if release funcs are disallowed
-		// for modded keys?
-		//if (!iskeyboardgrabbed && keys[i].mod != NOLOCKMASK(ev->state)) continue;
+		if (keys[i].mod) continue;
 		if (!keys[i].releasefunc) continue;
 		keys[i].releasefunc(&(keys[i].releasearg));
 		return;
@@ -310,10 +346,6 @@ grabkeys()
 	int nerr = 0;
 	for (size_t i = 0; i < LEN(keys); i++) {
 		if (!(keys[i].opts & GRAB)) continue;
-		if (keys[i].mod && keys[i].releasefunc) {
-			jot("key binding with modifier has release function");
-			exit(1);
-		}
 		int err = grabkey(&keys[i]);
 		if (err) nerr++;
 	}

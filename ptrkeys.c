@@ -60,7 +60,7 @@ int
 main(int argc, char *argv[])
 {
 	parseargs(argc, argv);
-	dieifduplicatebindings();
+	dieifbadbindings();
 	setup();
 	setsighandler();
 	if (sigsetjmp(jmpbuf, 0)) {
