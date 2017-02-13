@@ -18,7 +18,7 @@ Scan codes: Sent by the keyboard to a computer. Sets of codes evolved along with
 
 Key codes (keycodes): An intermediate hardware-independent set of codes. On Linux keycodes are translated to text and actions by the keyboard driver or X, using a keymap. X and the keyboard driver use different sets of keycodes. X keycodes can be determined using `xev`.
 
-Key symbols (keysyms):  X's term for its "application-level" set of codes. Multiple keycodes can map to the same keysym. X applications doing text entry can ask the xserver for the string that a keysym corresponds to (eg `XK_a` -> "a"). Most keysyms are defined in the Xlib header files `keysymdef.h` and `XF86keysym.h`.
+Key symbols (keysyms):  X's term for its "application-level" set of codes. X applications doing text entry can ask the xserver for the string that a keysym corresponds to (eg `XK_a` -> "a"). Most keysyms are defined in the Xlib header files `keysymdef.h` and `XF86keysym.h`.
 
 Key map (keymap): In general a keymap is a table defining the conversion of scan or key codes to a higher-level representation. In documentation about X keymap usually refers to the map of keycodes to keysyms. `xmodmap` and `setxkbmap` can be used to change these mappings.
 
