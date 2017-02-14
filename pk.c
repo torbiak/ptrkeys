@@ -27,12 +27,23 @@
 #define GRAB_KEYBOARD_TIMEOUT_MS 200
 
 
+typedef struct {
+	int dx, dy;
+} PointerUpdate;
+
+typedef struct {
+	int xevents, yevents;
+	unsigned int xbutton, ybutton;
+} ScrollUpdate;
+
+
 static void die_if_duplicate_bindings();
 static void die_if_modified_key_with_release_func();
 static void die_if_modified_ungrabbed_keys();
 static void handle_pending_events();
-static void requestpointermovement(Movement *m, int usec);
-static void requestscrolling(Movement *m, int usec);
+static PointerUpdate pointerupdate(Movement *m, int usec);
+static ScrollUpdate scrollupdate(Movement *m, int usec);
+static void request_scrolling(ScrollUpdate su);
 static void keypress(XEvent *e);
 static void keyrelease(XEvent *e);
 static void grabkeys();
@@ -95,11 +106,12 @@ runeventloop()
 				 + (now.tv_nsec - then.tv_nsec) / 1000;
 		then = now;
 
-		requestscrolling(&mvscroll, usec);
+		request_scrolling(scrollupdate(&mvscroll, usec));
 		if (ismove2scroll) {
-			requestscrolling(&mvptr, usec);
+			request_scrolling(scrollupdate(&mvptr, usec));
 		} else {
-			requestpointermovement(&mvptr, usec);
+			PointerUpdate pu = pointerupdate(&mvptr, usec);
+			XWarpPointer(dpy, None, None, 0, 0, 0, 0, pu.dx, pu.dy);
 		}
 		XFlush(dpy);
 
@@ -234,10 +246,11 @@ handle_pending_events()
 	}
 }
 
-static void
-requestpointermovement(Movement *m, int usec)
+static PointerUpdate
+pointerupdate(Movement *m, int usec)
 {
-	if (!m->dir) return;
+	PointerUpdate pu = {0};
+	if (!m->dir) return pu;
 	// xsign and ysign can be one of -1, 0, 1.
 	double xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
 	double ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
@@ -246,14 +259,16 @@ requestpointermovement(Movement *m, int usec)
 	double dummy;
 	m->xrem = modf(dx, &dummy);
 	m->yrem = modf(dy, &dummy);
-
-	XWarpPointer(dpy, None, None, 0, 0, 0, 0, (int)dx, (int)dy);
+	pu.dx = (int)dx;
+	pu.dy = (int)dy;
+	return pu;
 }
 
-static void
-requestscrolling(Movement *m, int usec)
+static ScrollUpdate
+scrollupdate(Movement *m, int usec)
 {
-	if (!m->dir) return;
+	ScrollUpdate su = {0};
+	if (!m->dir) return su;
 	// xsign and ysign can be one of -1, 0, 1.
 	double xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
 	double ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
@@ -263,32 +278,37 @@ requestscrolling(Movement *m, int usec)
 	m->xrem = modf(dx, &dummy);
 	m->yrem = modf(dy, &dummy);
 
-	unsigned int xbutton = (m->dir & LEFT) ? SCROLLLEFT : SCROLLRIGHT;
-	unsigned int ybutton = (m->dir & UP) ? SCROLLUP : SCROLLDOWN;
+	su.xbutton = (m->dir & LEFT) ? SCROLLLEFT : SCROLLRIGHT;
+	su.ybutton = (m->dir & UP) ? SCROLLUP : SCROLLDOWN;
 
-	int xevents = abs((int)dx);
-	int yevents = abs((int)dy);
+	su.xevents = abs((int)dx);
+	su.yevents = abs((int)dy);
 	// Scroll immediately after a scroll key is pressed, but adjust the
 	// remainder so the configured number of scroll events occur in the first
 	// second.
-	if (!xevents && (m->dir & (LEFT|RIGHT)) && !m->xcont) {
-		xevents += 1;
+	if (!su.xevents && (m->dir & (LEFT|RIGHT)) && !m->xcont) {
+		su.xevents += 1;
 		m->xrem -= 1;
 	}
-	if (!yevents && (m->dir & (UP|DOWN)) && !m->ycont) {
-		yevents += 1;
+	if (!su.yevents && (m->dir & (UP|DOWN)) && !m->ycont) {
+		su.yevents += 1;
 		m->yrem -= 1;
 	}
 	m->xcont = 1;
 	m->ycont = 1;
+	return su;
+}
 
-	for (int i = 0; i < xevents; i++) {
-		XTestFakeButtonEvent(dpy, xbutton, PRESS, CurrentTime);
-		XTestFakeButtonEvent(dpy, xbutton, RELEASE, CurrentTime);
+static void
+request_scrolling(ScrollUpdate su)
+{
+	for (int i = 0; i < su.xevents; i++) {
+		XTestFakeButtonEvent(dpy, su.xbutton, PRESS, CurrentTime);
+		XTestFakeButtonEvent(dpy, su.xbutton, RELEASE, CurrentTime);
 	}
-	for (int i = 0; i < yevents; i++) {
-		XTestFakeButtonEvent(dpy, ybutton, PRESS, CurrentTime);
-		XTestFakeButtonEvent(dpy, ybutton, RELEASE, CurrentTime);
+	for (int i = 0; i < su.yevents; i++) {
+		XTestFakeButtonEvent(dpy, su.ybutton, PRESS, CurrentTime);
+		XTestFakeButtonEvent(dpy, su.ybutton, RELEASE, CurrentTime);
 	}
 }
 
