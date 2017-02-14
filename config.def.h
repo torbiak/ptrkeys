@@ -3,7 +3,7 @@
 // Pixels per second.
 #define BASE_SPEED 1000.0
 // Events per second.
-#define BASE_SCROLL 10
+#define BASE_SCROLL 14
 
 // Set modifier bits as "internal" while the keyboard is grabbed, that is, the
 // xserver still keeps track of their state but doesn't pass them along in key
