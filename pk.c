@@ -27,10 +27,10 @@
 #define GRAB_KEYBOARD_TIMEOUT_MS 200
 
 
-static void dieifduplicatebindings();
-static void dieifmodifiedkeywithreleasefunc();
-static void dieifmodifiedungrabbedkeys();
-static void handlependingevents();
+static void die_if_duplicate_bindings();
+static void die_if_modified_key_with_release_func();
+static void die_if_modified_ungrabbed_keys();
+static void handle_pending_events();
 static void requestpointermovement(Movement *m, int usec);
 static void requestscrolling(Movement *m, int usec);
 static void keypress(XEvent *e);
@@ -87,7 +87,7 @@ runeventloop()
 		dief("get time: %s", strerror(errno));
 	}
 	for (; !quitting;) {
-		handlependingevents();
+		handle_pending_events();
 
 		struct timespec now;
 		clock_gettime(CLOCK_MONOTONIC, &now);
@@ -154,13 +154,13 @@ changedirection(Movement *m, unsigned int dir)
 void
 dieifbadbindings()
 {
-	dieifduplicatebindings();
-	dieifmodifiedkeywithreleasefunc();
-	dieifmodifiedungrabbedkeys();
+	die_if_duplicate_bindings();
+	die_if_modified_key_with_release_func();
+	die_if_modified_ungrabbed_keys();
 }
 
 void
-dieifduplicatebindings()
+die_if_duplicate_bindings()
 {
 	for (size_t i = 0; i < LEN(keys); i++) {
 		Key a = keys[i];
@@ -177,7 +177,7 @@ dieifduplicatebindings()
 }
 
 void
-dieifmodifiedkeywithreleasefunc()
+die_if_modified_key_with_release_func()
 {
 	for (size_t i = 0; i < LEN(keys); i++) {
 		Key key = keys[i];
@@ -190,7 +190,7 @@ dieifmodifiedkeywithreleasefunc()
 }
 
 void
-dieifmodifiedungrabbedkeys()
+die_if_modified_ungrabbed_keys()
 {
 	for (size_t i = 0; i < LEN(keys); i++) {
 		Key key = keys[i];
@@ -220,7 +220,7 @@ waitforrelease(KeyCode keycode)
 }
 
 static void
-handlependingevents()
+handle_pending_events()
 {
 	for (XEvent ev; XCheckMaskEvent(dpy, ~NoEventMask, &ev);) {
 		switch (ev.type) {
