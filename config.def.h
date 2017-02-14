@@ -16,9 +16,8 @@
 // included here. Note that some modifier keysyms are treated as modifiers even
 // if they aren't assigned to any modifier bits.
 //
-// Modifiers cannot be suppressed for global hotkeys. Note ptrkeys doesn't see
-// any internalmods either.
-unsigned int internalmods = ShiftMask;
+// Modifiers cannot be suppressed for global hotkeys.
+unsigned int internalmods = ShiftMask|ControlMask|Mod1Mask;
 
 // Use unshifted keysyms regardless whether shift will be pressed. Eg, use XK_a
 // or XK_5 instead of XK_A or XK_percent.
@@ -42,6 +41,7 @@ static Key keys[] = {
 {0,          XK_f,          0,              togglem2s,           {0},              NULL,            {0}},
 // Speed multiply/divide.
 {0,          XK_Alt_L,      0,              dividespeed,         {.f=8},           multiplyspeed,   {.f=8}},
+{0,          XK_Control_L,  0,              multiplyspeed,       {.f=32},          dividespeed,     {.f=32}},
 {0,          XK_j,          0,              dividespeed,         {.f=8},           multiplyspeed,   {.f=8}},
 {0,          XK_k,          0,              dividespeed,         {.f=2},           multiplyspeed,   {.f=2}},
 {0,          XK_l,          0,              multiplyspeed,       {.f=4},           dividespeed,     {.f=4}},
