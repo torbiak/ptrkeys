@@ -5,7 +5,7 @@
 
 typedef struct {
 	double basespeed;
-	unsigned int dir;  // Bits from enum Direction.
+	unsigned int dir;  // Bits from enum Direction, defined later.
 	double mul;
 	double xrem, yrem; // Subunit remainders.
 	int xcont, ycont; // Continuing a movement?
@@ -31,7 +31,6 @@ typedef struct {
 
 void setup();
 void runeventloop();
-void changedirection(Movement *m, unsigned int dir);
 void dieifbadbindings();
 void waitforrelease(KeyCode keycode);
 
@@ -46,5 +45,27 @@ extern int ismove2scroll;
 
 extern int iskeyboardgrabbed;
 extern int quitting;
+
+
+// Exported for testing only:
+
+typedef struct {
+	int dx, dy;
+} PointerUpdate;
+
+typedef struct {
+	int xevents, yevents;
+	unsigned int xbutton, ybutton;
+} ScrollUpdate;
+
+void startdir(Movement *m, unsigned int dir);
+void stopdir(Movement *m, unsigned int dir);
+PointerUpdate pointerupdate(Movement *m, int usec);
+ScrollUpdate scrollupdate(Movement *m, int usec);
+void sprintkeysym(char *dst, size_t len, KeySym keysym, int mods);
+int strappend(char *dst, size_t dstlen, char *src);
+int duplicate_bindings_exist(Key *keys, size_t len);
+int modified_key_with_release_func_exists(Key *keys, size_t len);
+int modified_ungrabbed_keys_exist(Key *keys, size_t len);
 
 #endif

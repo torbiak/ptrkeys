@@ -1,7 +1,11 @@
 include config.mk
 
-SRC := ptrkeys.c pk.c
+TEST_SRC := $(wildcard *_test.c)
+TESTS := $(TEST_SRC:.c=)
+
+SRC := pk.c
 OBJ := ${SRC:.c=.o}
+HEADERS := config.h jot.h pk.h
 
 all: options ptrkeys
 
@@ -15,18 +19,25 @@ options:
 	@echo CC $<
 	@${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk jot.h Makefile
+${OBJ}: ${HEADERS} config.mk Makefile
 
-ptrkeys: ${OBJ}
+ptrkeys: ${OBJ} ptrkeys.c
 	@echo CC -o $@
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+	@${CC} -o $@ ptrkeys.c ${OBJ} ${CFLAGS} ${LDFLAGS}
+
+${TESTS}: %_test: %_test.c ${OBJ}
+	@echo CC -o $@
+	@${CC} -o $@ $< ${CFLAGS} -g ${LDFLAGS} ${OBJ}
 
 config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
 
+check: ${TESTS} runtests.sh
+	sh ./runtests.sh
+
 clean:
-	rm -f ptrkeys ${OBJ} ptrkeys-${VERSION}.tar.gz
+	rm -f ptrkeys ${OBJ} ${TESTS} ptrkeys-${VERSION}.tar.gz test.log
 
 dist: clean
 	@echo creating dist tarball

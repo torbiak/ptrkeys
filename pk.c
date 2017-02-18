@@ -27,22 +27,7 @@
 #define GRAB_KEYBOARD_TIMEOUT_MS 200
 
 
-typedef struct {
-	int dx, dy;
-} PointerUpdate;
-
-typedef struct {
-	int xevents, yevents;
-	unsigned int xbutton, ybutton;
-} ScrollUpdate;
-
-
-static void die_if_duplicate_bindings();
-static void die_if_modified_key_with_release_func();
-static void die_if_modified_ungrabbed_keys();
 static void handle_pending_events();
-static PointerUpdate pointerupdate(Movement *m, int usec);
-static ScrollUpdate scrollupdate(Movement *m, int usec);
 static void request_scrolling(ScrollUpdate su);
 static void keypress(XEvent *e);
 static void keyrelease(XEvent *e);
@@ -53,8 +38,6 @@ static void updatenumlockmask();
 static void cleanup();
 static int saveerror(Display *dpy, XErrorEvent *ee);
 static void msleep(long ms);
-static void sprintkeysym(char *dst, size_t len, KeySym keysym, int mods);
-static int strappend(char *dst, size_t dstlen, char *src);
 
 
 #include "config.h"
@@ -71,6 +54,7 @@ int ismove2scroll = 0;
 
 static int numlockmask = Mod2Mask;
 static XErrorEvent savederror = {0};
+
 
 // setup connects to the xserver, configures the keyboard, and registers exit
 // and signal functions.
@@ -126,15 +110,42 @@ runeventloop()
 	}
 }
 
-// changedirection updates the direction of the given movment struct.
 void
-changedirection(Movement *m, unsigned int dir)
+dieifbadbindings()
+{
+	Key *localkeys = keys;
+	size_t len = LEN(keys);
+	if (modified_ungrabbed_keys_exist(localkeys, len)
+	|| modified_key_with_release_func_exists(localkeys, len)
+	|| duplicate_bindings_exist(localkeys, len)) {
+		exit(1);
+	}
+}
+
+// waitforrelease waits for a KeyRelease event for the given keycode,
+// discarding other KeyPress and KeyRelease events until then.
+void
+waitforrelease(KeyCode keycode)
+{
+	tracef("wait for release: %d", keycode);
+	for (;;) {
+		XEvent ev;
+		XMaskEvent(dpy, KeyPressMask|KeyReleaseMask, &ev);
+		if (ev.xkey.keycode == keycode) {
+			tracef("released %d", keycode);
+			return;
+		}
+	}
+}
+
+void
+startdir(Movement *m, unsigned int dir)
 {
 	if (dir & UP && dir & DOWN) {
-		die("changedirection: both UP and DOWN given");
+		die("startdir: both UP and DOWN given");
 	}
 	if (dir & LEFT && dir & RIGHT) {
-		die("changedirection: both LEFT and RIGHT given");
+		die("startdir: both LEFT and RIGHT given");
 	}
 	if (dir & (UP|DOWN)) {
 		m->yrem = 0;
@@ -162,91 +173,13 @@ changedirection(Movement *m, unsigned int dir)
 	}
 }
 
-
 void
-dieifbadbindings()
+stopdir(Movement *m, unsigned int dir)
 {
-	die_if_duplicate_bindings();
-	die_if_modified_key_with_release_func();
-	die_if_modified_ungrabbed_keys();
+	m->dir &= ~dir;
 }
 
-void
-die_if_duplicate_bindings()
-{
-	for (size_t i = 0; i < LEN(keys); i++) {
-		Key a = keys[i];
-		for (size_t j = 0; j < LEN(keys); j++) {
-			if (i == j) continue;
-			Key b = keys[j];
-			if (a.mod == b.mod && a.keysym == b.keysym) {
-				char keystr[MAX_KEYSYM_DESC_LEN] = {0};
-				sprintkeysym(keystr, LEN(keystr), a.keysym, a.mod);
-				dief("multiple bindings for %s", keystr);
-			}
-		}
-	}
-}
-
-void
-die_if_modified_key_with_release_func()
-{
-	for (size_t i = 0; i < LEN(keys); i++) {
-		Key key = keys[i];
-		if (key.mod && key.releasefunc) {
-			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
-			sprintkeysym(keystr, LEN(keystr), key.keysym, key.mod);
-			dief("key with modifier and release function: %s", keystr);
-		}
-	}
-}
-
-void
-die_if_modified_ungrabbed_keys()
-{
-	for (size_t i = 0; i < LEN(keys); i++) {
-		Key key = keys[i];
-		if (key.mod && !(keys[i].opts & GRAB)) {
-			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
-			sprintkeysym(keystr, LEN(keystr), key.keysym, key.mod);
-			dief("binding with modifiers but no GRAB: %s", keystr);
-		}
-	}
-}
-
-
-// waitforrelease waits for a KeyRelease event for the given keycode,
-// discarding other KeyPress and KeyRelease events until then.
-void
-waitforrelease(KeyCode keycode)
-{
-	tracef("wait for release: %d", keycode);
-	for (;;) {
-		XEvent ev;
-		XMaskEvent(dpy, KeyPressMask|KeyReleaseMask, &ev);
-		if (ev.xkey.keycode == keycode) {
-			tracef("released %d", keycode);
-			return;
-		}
-	}
-}
-
-static void
-handle_pending_events()
-{
-	for (XEvent ev; XCheckMaskEvent(dpy, ~NoEventMask, &ev);) {
-		switch (ev.type) {
-		case KeyPress:
-			keypress(&ev); break;
-		case KeyRelease:
-			keyrelease(&ev); break;
-		case MappingNotify:
-			updatenumlockmask(); break;
-		}
-	}
-}
-
-static PointerUpdate
+PointerUpdate
 pointerupdate(Movement *m, int usec)
 {
 	PointerUpdate pu = {0};
@@ -264,14 +197,14 @@ pointerupdate(Movement *m, int usec)
 	return pu;
 }
 
-static ScrollUpdate
+ScrollUpdate
 scrollupdate(Movement *m, int usec)
 {
 	ScrollUpdate su = {0};
 	if (!m->dir) return su;
-	// xsign and ysign can be one of -1, 0, 1.
-	double xsign = ((m->dir & RIGHT) ? 1 : 0) - ((m->dir & LEFT) ? 1 : 0);
-	double ysign = ((m->dir & UP) ? 1 : 0) - ((m->dir & DOWN) ? 1 : 0);
+	// xsign and ysign can be one of 0, 1.
+	double xsign = ((m->dir & (LEFT|RIGHT)) ? 1 : 0);
+	double ysign = ((m->dir & (UP|DOWN)) ? 1 : 0);
 	double dx = m->basespeed * xsign * m->mul * usec / 1e6 + m->xrem;
 	double dy = m->basespeed * ysign * m->mul * usec / 1e6 + m->yrem;
 	double dummy;
@@ -297,6 +230,133 @@ scrollupdate(Movement *m, int usec)
 	m->xcont = 1;
 	m->ycont = 1;
 	return su;
+}
+
+// sprintkeysym prints a representation of the given keysym and modifiers to
+// dst. Dies if dst doesn't have enough space.
+void
+sprintkeysym(char *dst, size_t dstlen, KeySym keysym, int mods)
+{
+	int isfirst = 1;
+	int err = 0;
+	for (int i = 0; i < 8; i++) {
+		if (!(mods & 1<<i)) continue;
+		if (!isfirst) strappend(dst, dstlen, "+");
+		isfirst = 0;
+		switch (1<<i) {
+		case ShiftMask: err = strappend(dst, dstlen, "Shift"); break;
+		case LockMask: err = strappend(dst, dstlen, "Lock"); break;
+		case ControlMask: err = strappend(dst, dstlen, "Control"); break;
+		case Mod1Mask: err = strappend(dst, dstlen, "Mod1"); break;
+		case Mod2Mask: err = strappend(dst, dstlen, "Mod2"); break;
+		case Mod3Mask: err = strappend(dst, dstlen, "Mod3"); break;
+		case Mod4Mask: err = strappend(dst, dstlen, "Mod4"); break;
+		case Mod5Mask: err = strappend(dst, dstlen, "Mod5"); break;
+		}
+		if (err) goto toolong;
+	}
+	if (!isfirst) {
+		if (strappend(dst, dstlen, "+")) goto toolong;
+	}
+	char *keystr = XKeysymToString(keysym);
+	if (!keystr) {
+		int n = snprintf(dst, dstlen, "%s%lx", dst, keysym);
+		assert(n >= 0);
+		if ((unsigned)n >= dstlen) goto toolong;
+	}
+	if (strappend(dst, dstlen, keystr)) goto toolong;
+	return;
+toolong:
+	dief("sprintkeysym: buffer overrun printing mods=%u keysym=%lx", mods, keysym);
+	return;
+}
+
+// strappend appends src to dst. Returns 0 on success, and nonzero otherwise.
+int
+strappend(char *dst, size_t dstlen, char *src)
+{
+	if (!src || !dst) return 2;
+	int err = 0;
+	char *start = dst;
+	for (size_t i = 0; *dst; i++) {
+		if (i >= dstlen) goto toolong;
+		dst++;
+	}
+	for (size_t i = dst - start; *src; i++) {
+		if (i >= dstlen-1) goto toolong;
+		*dst++ = *src++;
+	}
+	goto cleanup;
+toolong:
+	err = 1;
+cleanup:
+	*dst = '\0';
+	return err;
+}
+
+int
+duplicate_bindings_exist(Key *localkeys, size_t len)
+{
+	for (size_t i = 0; i < len; i++) {
+		Key a = localkeys[i];
+		for (size_t j = 0; j < len; j++) {
+			if (i == j) continue;
+			Key b = localkeys[j];
+			if (a.keysym != b.keysym) continue;
+			if ((a.opts & GRAB) != (b.opts & GRAB)) continue;
+			if (a.mod != b.mod) continue;
+			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
+			sprintkeysym(keystr, LEN(keystr), a.keysym, a.mod);
+			jotf("multiple bindings for %s", keystr);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
+modified_key_with_release_func_exists(Key *localkeys, size_t len)
+{
+	for (size_t i = 0; i < len; i++) {
+		Key key = localkeys[i];
+		if (key.mod && key.releasefunc) {
+			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
+			sprintkeysym(keystr, LEN(keystr), key.keysym, key.mod);
+			jotf("key with modifier and release function: %s", keystr);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
+modified_ungrabbed_keys_exist(Key *localkeys, size_t len)
+{
+	for (size_t i = 0; i < len; i++) {
+		Key key = localkeys[i];
+		if (key.mod && !(localkeys[i].opts & GRAB)) {
+			char keystr[MAX_KEYSYM_DESC_LEN] = {0};
+			sprintkeysym(keystr, LEN(keystr), key.keysym, key.mod);
+			jotf("binding with modifiers but no GRAB: %s", keystr);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static void
+handle_pending_events()
+{
+	for (XEvent ev; XCheckMaskEvent(dpy, ~NoEventMask, &ev);) {
+		switch (ev.type) {
+		case KeyPress:
+			keypress(&ev); break;
+		case KeyRelease:
+			keyrelease(&ev); break;
+		case MappingNotify:
+			updatenumlockmask(); break;
+		}
+	}
 }
 
 static void
@@ -465,69 +525,6 @@ msleep(long ms)
 	};
 	nanosleep(&duration, NULL);
 }
-
-// sprintkeysym prints a representation of the given keysym and modifiers to
-// dst. Dies if dst doesn't have enough space.
-static void
-sprintkeysym(char *dst, size_t dstlen, KeySym keysym, int mods)
-{
-	int isfirst = 1;
-	int err = 0;
-	for (int i = 0; i < 8; i++) {
-		if (!(mods & 1<<i)) continue;
-		if (!isfirst) strappend(dst, dstlen, "+");
-		isfirst = 0;
-		switch (1<<i) {
-		case ShiftMask: err = strappend(dst, dstlen, "Shift"); break;
-		case LockMask: err = strappend(dst, dstlen, "Lock"); break;
-		case ControlMask: err = strappend(dst, dstlen, "Control"); break;
-		case Mod1Mask: err = strappend(dst, dstlen, "Mod1"); break;
-		case Mod2Mask: err = strappend(dst, dstlen, "Mod2"); break;
-		case Mod3Mask: err = strappend(dst, dstlen, "Mod3"); break;
-		case Mod4Mask: err = strappend(dst, dstlen, "Mod4"); break;
-		case Mod5Mask: err = strappend(dst, dstlen, "Mod5"); break;
-		}
-		if (err) goto toolong;
-	}
-	if (!isfirst) {
-		if (strappend(dst, dstlen, "+")) goto toolong;
-	}
-	char *keystr = XKeysymToString(keysym);
-	if (!keystr) {
-		int n = snprintf(dst, dstlen, "%s%lx", dst, keysym);
-		assert(n >= 0);
-		if ((unsigned)n >= dstlen) goto toolong;
-	}
-	if (strappend(dst, dstlen, keystr)) goto toolong;
-	return;
-toolong:
-	dief("sprintkeysym: buffer overrun printing mods=%u keysym=%lx", mods, keysym);
-	return;
-}
-
-// strappend appends src to dst. Returns 0 on success, and nonzero otherwise.
-int
-strappend(char *dst, size_t dstlen, char *src)
-{
-	if (!src || !dst) return 2;
-	int err = 0;
-	char *start = dst;
-	for (size_t i = 0; *dst; i++) {
-		if (i >= dstlen) goto toolong;
-		dst++;
-	}
-	for (size_t i = dst - start; *src; i++) {
-		if (i >= dstlen-1) goto toolong;
-		*dst++ = *src++;
-	}
-	goto cleanup;
-toolong:
-	err = 1;
-cleanup:
-	dst = '\0';
-	return err;
-}
-
 void
 grabkeyboard(const Arg *keysym)
 {
@@ -604,14 +601,14 @@ void
 movestart(const Arg *dir)
 {
 	if (!dir) die("movestart: NULL arg");
-	changedirection(&mvptr, dir->ui);
+	startdir(&mvptr, dir->ui);
 }
 
 void
 movestop(const Arg *dir)
 {
 	if (!dir) die("stop: NULL arg");
-	mvptr.dir &= ~(dir->ui);
+	stopdir(&mvptr, dir->ui);
 }
 
 // move2scroll changes pointer movement into scrolling based on the given
@@ -647,14 +644,14 @@ void
 scrollstart(const Arg *dir)
 {
 	if (!dir) die("scrollstart: NULL arg");
-	changedirection(&mvscroll, dir->ui);
+	startdir(&mvscroll, dir->ui);
 }
 
 void
 scrollstop(const Arg *dir)
 {
 	if (!dir) die("scrollstop: NULL arg");
-	mvscroll.dir &= ~(dir->ui);
+	stopdir(&mvscroll, dir->ui);
 }
 
 void
