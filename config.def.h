@@ -19,6 +19,8 @@
 // Modifiers cannot be suppressed for global hotkeys.
 unsigned int internalmods = ShiftMask|ControlMask|Mod1Mask;
 
+// See command.h for the list of bindable functions.
+//
 // Use unshifted keysyms regardless whether shift will be pressed. Eg, use XK_a
 // or XK_5 instead of XK_A or XK_percent.
 //
