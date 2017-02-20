@@ -33,6 +33,20 @@ unsigned int internalmods = ShiftMask|ControlMask|Mod1Mask;
 // grabbed. Bindings with modifiers must have the GRAB option set.
 static Key keys[] = {
 // modifier  key            opts            press func           press arg         release func     release arg
+// Enable/disable
+//
+// The caps lock key has been bound to Select in xmodmap to avoid changing the
+// Lock modifier state. eg: `keycode 66 = Select`
+//
+// If the keyboard will be grabbed while a key is held down, auto-repeat must
+// be disabled for the key using the NOREPEAT option. This could be
+// inconvenient if the key is frequently used outside of ptrkeys.
+{Mod4Mask,   XK_w,          GRAB,           grabkeyboard,        {.ul=XK_w},       NULL,            {0}},
+{0,          XK_q,          0,              ungrabkeyboard,      {0},              NULL,            {0}},
+{0,          XK_Select,     GRAB|NOREPEAT,  grabkeyboard,        {0},              ungrabkeyboard,  {0}},
+{ShiftMask,  XK_Select,     GRAB|NOREPEAT,  grabandmove2scroll,  {0},              NULL,            {0}},
+{Mod4Mask,   XK_v,          GRAB,           togglegrabkeyboard,  {0},              NULL,            {0}},
+{0,          XK_x,          0,              quit,                {0},              NULL,            {0}},
 // Directional control with WASD.
 {0,          XK_w,          0,              movestart,           {.i=UP},          movestop,        {.i=UP}},
 {0,          XK_a,          0,              movestart,           {.i=LEFT},        movestop,        {.i=LEFT}},
@@ -55,20 +69,6 @@ static Key keys[] = {
 // Right-handed clicking, for dragging, etc.
 {0,          XK_n,          0,              clickpress,          {.ui=BTNRIGHT},   clickrelease,    {.ui=BTNRIGHT}},
 {0,          XK_m,          0,              clickpress,          {.ui=BTNMIDDLE},  clickrelease,    {.ui=BTNMIDDLE}},
-// Enable/disable
-//
-// The caps lock key has been bound to Select in xmodmap to avoid changing the
-// Lock modifier state. eg: `keycode 66 = Select`
-//
-// If the keyboard will be grabbed while a key is held down, auto-repeat must
-// be disabled for the key using the NOREPEAT option. This could be
-// inconvenient if the key is frequently used outside of ptrkeys.
-{0,          XK_Select,     GRAB|NOREPEAT,  grabkeyboard,        {0},              ungrabkeyboard,  {0}},
-{ShiftMask,  XK_Select,     GRAB|NOREPEAT,  grabandmove2scroll,  {0},              NULL,            {0}},
-{Mod4Mask,   XK_v,          GRAB,           togglegrabkeyboard,  {0},              NULL,            {0}},
-{Mod4Mask,   XK_w,          GRAB,           grabkeyboard,        {.ul=XK_w},       NULL,            {0}},
-{0,          XK_q,          0,              ungrabkeyboard,      {0},              NULL,            {0}},
-{0,          XK_x,          0,              quit,                {0},              NULL,            {0}},
 // Debugging
 {Mod4Mask,   XK_g,          GRAB,           resetmovement,       {0},              NULL,            {0}},
 };

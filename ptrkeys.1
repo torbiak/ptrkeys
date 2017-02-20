@@ -1,0 +1,76 @@
+.TH PTRKEYS 1
+.SH NAME
+ptrkeys \- mouse keys for X11
+.SH SYNOPSIS
+.B ptrkeys
+.RB [ \-d ]
+.SH DESCRIPTION
+ptrkeys binds the keyboard to pointer movement, scrolling, and mouse button presses on X.
+.P
+See README.md in the source repository for more information.
+.SH OPTIONS
+.TP
+.B \-d
+enable debug output
+.SH KEY BINDINGS
+By default ptrkeys has a handful of "global hotkeys", marked with "(global)" below, that are passively grabbed with X and used to actively grab the keyboard so the rest of the keybindings are active.
+.SS Enable/Disable
+.TP
+.B Mod4+w (global)
+Grab the keyboard.
+.TP
+.B q
+Ungrab the keyboard
+.TP
+.B Select (global)
+Grab the keyboard, enabling other bindings.
+.TP
+.B Shift+Select (global)
+Grab the keyboard and set the movement keys to scroll instead.
+.TP
+.B Mod4+v (global)
+Toggle whether the keyboard is grabbed.
+.TP
+.B x
+quit ptrkeys
+.SS Directional control
+.TP
+.B w a s d
+Move up, down, left, right, respectively.
+.TP
+.B Shift_L
+While pressed, movement keys scroll instead.
+.TP
+.B f
+Toggle movement keys between moving and scrolling.
+.SS Speed multiply/divide
+.TP
+.B Alt_L
+Divide speed by a factor of 8.
+.TP
+.B Control_L
+Multiply speed by a factor of 32.
+.TP
+.B j
+Divide speed by a factor of 8.
+.TP
+.B k
+Divide speed by a factor of 2.
+.TP
+.B l
+Multiply speed by a factor of 4.
+.TP
+.B semicolon
+Multiply speed by a factor of 8.
+.SS Clicking
+.TP
+.B space
+Left-click.
+.TP
+.B e or n
+Right-click.
+.TP
+.B r or m
+Middle-click.
+.SH CUSTOMIZATION
+Change ptrkeys key bindings by compiling it from source, using config.def.h as a template for a custom config.h.
