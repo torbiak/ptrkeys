@@ -45,9 +45,6 @@ parseargs(int argc, char *argv[])
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			fprintf(stdout, USAGE);
 			exit(0);
-		} else if (!strcmp(argv[i], "--version")) {
-			fprintf(stdout, VERSION "\n");
-			exit(0);
 		} else {
 			fprintf(stderr, USAGE);
 			exit(1);
