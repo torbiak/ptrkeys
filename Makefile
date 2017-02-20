@@ -11,8 +11,9 @@ HEADERS := config.h jot.h pk.h
 
 all: ptrkeys
 
+ptrkeys: VERSION := $(shell git rev-parse HEAD)
 ptrkeys: ${HEADERS} ptrkeys.c pk.c
-	${CC} -o $@ ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} ptrkeys.c pk.c
+	${CC} -o $@ ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -DVERSION=\"${VERSION}\" ptrkeys.c pk.c
 
 config.h:
 	cp config.def.h $@

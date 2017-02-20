@@ -3,16 +3,24 @@
 ptrkeys \- mouse keys for X11
 .SH SYNOPSIS
 .B ptrkeys
-.RB [ \-d ]
+.RB [ \-d | \-\-debug ]
+.RB [ \-h | \-\-help ]
+.RB [ \-\-version ]
 .SH DESCRIPTION
 ptrkeys binds the keyboard to pointer movement, scrolling, and mouse button presses on X.
 .P
 See README.md in the source repository for more information.
 .SH OPTIONS
 .TP
-.B \-d
-enable debug output
-.SH KEY BINDINGS
+.B \-d, \-\-debug
+Enable debug output.
+.TP
+.B \-h, \-\-help
+Print help.
+.TP
+.B \-\-version
+Print version.
+.SH DEFAULT KEY BINDINGS
 By default ptrkeys has a handful of "global hotkeys", marked with "(global)" below, that are passively grabbed with X and used to actively grab the keyboard so the rest of the keybindings are active.
 .SS Enable/Disable
 .TP

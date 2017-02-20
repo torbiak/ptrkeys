@@ -7,7 +7,7 @@
 #include "pk.h"
 #include "jot.h"
 
-#define USAGE "usage: ptrkeys [-d|--debug] [-h|--help]\n"
+#define USAGE "usage: ptrkeys [-d|--debug] [-h|--help] [--version]\n"
 
 static void onsigint();
 static void setsighandler();
@@ -44,6 +44,9 @@ parseargs(int argc, char *argv[])
 			jottrace = 1;
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			fprintf(stdout, USAGE);
+			exit(0);
+		} else if (!strcmp(argv[i], "--version")) {
+			fprintf(stdout, VERSION "\n");
 			exit(0);
 		} else {
 			fprintf(stderr, USAGE);
