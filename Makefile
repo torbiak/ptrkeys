@@ -13,7 +13,7 @@ all: ptrkeys
 
 ptrkeys: VERSION := $(shell git rev-parse HEAD)
 ptrkeys: ${HEADERS} ptrkeys.c pk.c
-	${CC} -o $@ ${CPPFLAGS} ${CFLAGS} ${LDFLAGS} -DVERSION=\"${VERSION}\" ptrkeys.c pk.c
+	${CC} -o $@ ${CPPFLAGS} ${CFLAGS} -DVERSION=\"${VERSION}\" ptrkeys.c pk.c ${LDFLAGS}
 
 config.h:
 	cp config.def.h $@
