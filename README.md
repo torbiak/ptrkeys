@@ -6,7 +6,8 @@ ptrkeys is a daemon that binds the keyboard to mouse movement, scrolling, and mo
 
 Building ptrkeys requires:
 
-* Xlib header files
+* Xlib header files (Debian: libx11-dev, Arch: libx11)
+* XTEST header files (Debian: libxtst-dev, Arch: libx11)
 * GNU make
 * a C99 compiler
 
