@@ -1,6 +1,6 @@
 # ptrkeys - smooth mouse keys for X11
 
-ptrkeys is a daemon that binds the keyboard to mouse movement, scrolling, and mouse button presses on X. Instead of using acceleration like X's builtin [MouseKeys](https://www.x.org/releases/X11R7.7/doc/libX11/XKB/xkblib.html#Controls_for_Using_the_Mouse_from_the_Keyboard), with ptrkeys speed-multiplier keys are pressed along with directional keys to get faster or more precise movement.
+ptrkeys is a daemon that binds the keyboard to mouse movement, scrolling, and mouse button presses on X. Instead of using acceleration like X's builtin [MouseKeys](https://www.x.org/releases/X11R7.7/doc/libX11/XKB/xkblib.html#Controls_for_Using_the_Mouse_from_the_Keyboard), with ptrkeys speed-multiplier keys are pressed along with directional keys to get faster or more precise movement. This control scheme is based on the observation that most pointing is done by quickly flinging the pointer to a general area before carefully zeroing in on a target. With ptrkeys multiple directional keys can be pressed at once, enabling fluid control of the pointer.
 
 ## Requirements
 
