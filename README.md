@@ -2,6 +2,8 @@
 
 ptrkeys is a daemon that binds the keyboard to mouse movement, scrolling, and mouse button presses on X. Instead of using acceleration like X's builtin [MouseKeys](https://www.x.org/releases/X11R7.7/doc/libX11/XKB/xkblib.html#Controls_for_Using_the_Mouse_from_the_Keyboard), with ptrkeys speed-multiplier keys are pressed along with directional keys to get faster or more precise movement. This control scheme is based on the observation that most pointing is done by quickly flinging the pointer to a general area before carefully zeroing in on a target. With ptrkeys multiple directional keys can be pressed at once, enabling fluid control of the pointer.
 
+Unfortunately, to be able to chord directions smoothly and get key-release events reliably ptrkeys needs to grab the whole keyboard, which interferes with full-featured desktop environments, such as GNOME 3, that also grab the whole keyboard when interacting with the menubar, system tray, etc. Because of this, ptrkeys is likely only useful with minimalist window managers.
+
 ## Requirements
 
 Building ptrkeys requires:
