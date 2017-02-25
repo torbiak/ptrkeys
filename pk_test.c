@@ -39,12 +39,12 @@ test_strappend()
 		}
 		if (err != test.wanterr) {
 			rc = 1;
-			jotf("test=%lu err=%d want=%d", i, err, test.wanterr);
+			jotf("test=%zu err=%d want=%d", i, err, test.wanterr);
 			continue;
 		}
 		if (strcmp(test.dst, test.wantstr)) {
 			rc = 1;
-			jotf("test=%lu str=\"%s\" want=\"%s\"", i, test.dst, test.wantstr);
+			jotf("test=%zu str=\"%s\" want=\"%s\"", i, test.dst, test.wantstr);
 			continue;
 		}
 	}
@@ -112,7 +112,7 @@ test_pointerupdate()
 				rc = 1;
 				jotf("mv: base=%.2g dir=%u mul=%.2g xrem=%.2g yrem=%.2g xcont=%d ycont=%d",
 						mv.basespeed, mv.dir, mv.mul, mv.xrem, mv.yrem, mv.xcont, mv.ycont);
-				jotf("test=%lu frame=%lu got={dx=%d dy=%d}, want={dx=%d dy=%d}",
+				jotf("test=%zu frame=%zu got={dx=%d dy=%d}, want={dx=%d dy=%d}",
 						i, j, got.dx, got.dy, want.dx, want.dy);
 				break;
 			}
@@ -192,7 +192,7 @@ test_scrollupdate()
 				rc = 1;
 				jotf("mv: base=%.2g dir=%u mul=%.2g xrem=%.2g yrem=%.2g xcont=%d ycont=%d",
 						mv.basespeed, mv.dir, mv.mul, mv.xrem, mv.yrem, mv.xcont, mv.ycont);
-				jotf("test=%lu frame=%lu got={x=%d xbut=%d y=%d ybut=%d}, want={x=%d xbut=%d y=%d ybut=%d}",
+				jotf("test=%zu frame=%zu got={x=%d xbut=%d y=%d ybut=%d}, want={x=%d xbut=%d y=%d ybut=%d}",
 						i, j,
 						got.xevents, got.xbutton, got.yevents, got.ybutton,
 						want.xevents, want.xbutton, want.yevents, want.ybutton);
@@ -224,7 +224,7 @@ test_sprintkeysym()
 		sprintkeysym(buf, LEN(buf), test.keysym, test.mods);
 		if (strcmp(buf, test.wantstr)) {
 			rc = 1;
-			jotf("test=%lu str=\"%s\" want=\"%s\"", i, buf, test.wantstr);
+			jotf("test=%zu str=\"%s\" want=\"%s\"", i, buf, test.wantstr);
 			continue;
 		}
 	}
@@ -271,7 +271,7 @@ test_duplicate_bindings_exist()
 		struct test test = tests[i];
 		int gotdupes = duplicate_bindings_exist(test.key, test.len);
 		if (gotdupes != test.wantdupes) {
-			jotf("test %lu: gotdupes=%d wantdupes=%d", i, gotdupes, test.wantdupes);
+			jotf("test %zu: gotdupes=%d wantdupes=%d", i, gotdupes, test.wantdupes);
 			rc = 1;
 		}
 	}
@@ -303,7 +303,7 @@ test_modified_key_with_release_func_exists()
 		struct test test = tests[i];
 		int got = modified_key_with_release_func_exists(test.key, test.len);
 		if (got != test.want) {
-			jotf("test %lu: got=%d want=%d", i, got, test.want);
+			jotf("test %zu: got=%d want=%d", i, got, test.want);
 			rc = 1;
 		}
 	}
@@ -336,7 +336,7 @@ test_modified_ungrabbed_keys_exist()
 		struct test test = tests[i];
 		int got = modified_ungrabbed_keys_exist(test.key, test.len);
 		if (got != test.want) {
-			jotf("test %lu: got=%d want=%d", i, got, test.want);
+			jotf("test %zu: got=%d want=%d", i, got, test.want);
 			rc = 1;
 		}
 	}
